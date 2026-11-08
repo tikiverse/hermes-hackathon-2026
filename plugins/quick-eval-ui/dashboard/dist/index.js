@@ -9,13 +9,17 @@ const AGO_STEPS = [
   { lt: Infinity, div: 86400, suffix: "d ago" },
 ]
 const SETTERS = { class: setClass, text: setText, value: setValue }
+const RANGES = {
+  hour: { label: "Hour", secs: 3600 }, day: { label: "Day", secs: 86400 },
+  week: { label: "Week", secs: 604800 }, all: { label: "All time", secs: Infinity },
+}
 const EP = freshState()
 
 function freshState() {
   return {
     root: null, api: "", fetchJSON: null, els: {}, sessions: [], sessionId: null, session: null, turns: [], sel: 0,
     evals: {}, stats: {}, presets: [], preset: "", customModel: "", live: true, view: "chat", tab: "review",
-    compare: false, runs: [], draft: null, dirty: false, toast: "", busy: "", saved: [], lastMsgCount: 0, toastTimer: null,
+    compare: false, runs: [], range: "all", model: "", q: "", draft: null, dirty: false, toast: "", busy: "", saved: [], lastMsgCount: 0, toastTimer: null,
     pollTimer: null,
   }
 }
@@ -142,7 +146,7 @@ function toast(message) {
 
 function fail(e) { toast("⚠ " + pick(e.message, e)) }
 
-async function loadSessions() { EP.sessions = (await call("/sessions?limit=100")).sessions }
+async function loadSessions() { EP.sessions = (await call("/sessions?limit=500")).sessions }
 function inCurrentSession(e) { return e.session_id === EP.sessionId && !!e.message_id }
 function indexEval(e) { EP.evals[e.message_id] = e }
 
@@ -299,11 +303,60 @@ function sessionLabel(s) {
 }
 
 function sessionOption(s) { return h("option", { value: s.id, selected: s.id === EP.sessionId }, sessionLabel(s)) }
-function onSessionChange(e) { openSession(e.target.value, true).catch(fail) }
-function onLiveChange(e) { EP.live = e.target.checked }
+function newestId() { return EP.sessions.length ? EP.sessions[0].id : null }
+
+function onSessionChange(e) {
+  EP.live = e.target.value === newestId()
+  openSession(e.target.value, true).catch(fail)
+}
+
+function onLiveChange(e) {
+  EP.live = e.target.checked
+  if (EP.live && newestId()) openSession(newestId(), true).catch(fail)
+}
+
+function sessionTime(s) { return pick(s.last_activity_at, s.started_at) || 0 }
+function inRange(s) { return Date.now() / 1000 - sessionTime(s) <= RANGES[EP.range].secs }
+function matchesModel(s) { return !EP.model || s.model === EP.model }
+function matchesText(s) { return !EP.q || sessionLabel(s).toLowerCase().includes(EP.q.toLowerCase()) }
+function isVisible(s) { return inRange(s) && matchesModel(s) && matchesText(s) }
+function isCurrent(s) { return s.id === EP.sessionId }
+
+function visibleSessions() {
+  const shown = EP.sessions.filter(isVisible)
+  const current = EP.sessions.find(isCurrent)
+  return current && !shown.includes(current) ? [current, ...shown] : shown
+}
 
 function sessionSelect() {
-  return h("select", { class: "ep-session", "aria-label": "Session", onchange: onSessionChange }, EP.sessions.map(sessionOption))
+  return h("select", { class: "ep-session", "aria-label": "Session", onchange: onSessionChange }, visibleSessions().map(sessionOption))
+}
+
+function setRange(key) { EP.range = key; renderFilters(); renderHead() }
+function onModelFilter(e) { EP.model = e.target.value; renderFilters(); renderHead() }
+function onSearch(e) { EP.q = e.target.value; renderHead(); renderCount() }
+function uniqueModels() { return [...new Set(EP.sessions.map(modelOf).filter(Boolean))].sort() }
+function modelOf(s) { return s.model }
+
+function rangeButton(key) {
+  return h("button", { class: "ep-segb" + onClass(EP.range === key), onclick: setRange.bind(null, key) }, RANGES[key].label)
+}
+
+function modelOption(m) { return h("option", { value: m, selected: m === EP.model }, m) }
+
+function modelFilter() {
+  return h("select", { class: "ep-input ep-filter", "aria-label": "Filter by model", onchange: onModelFilter },
+    h("option", { value: "" }, "All models"), uniqueModels().map(modelOption))
+}
+
+function countText() { return `${EP.sessions.filter(isVisible).length} of ${EP.sessions.length} sessions` }
+function renderCount() { const el = EP.els.filters.querySelector(".ep-count"); if (el) el.textContent = countText() }
+
+function renderFilters() {
+  const search = h("input", { class: "ep-input ep-filter ep-search", type: "search", placeholder: "Search sessions",
+    "aria-label": "Search sessions", value: EP.q, oninput: onSearch })
+  EP.els.filters.replaceChildren(h("div", { class: "ep-seg" }, Object.keys(RANGES).map(rangeButton)), modelFilter(),
+    search, h("span", { class: "ep-meta ep-count", text: countText() }))
 }
 
 function liveEl() {
@@ -583,6 +636,7 @@ function scrollFocus() {
 function render() {
   renderHead()
   EP.els.body.classList.toggle("saved", EP.tab === "saved")
+  EP.els.filters.hidden = EP.tab === "saved"
   if (EP.tab === "saved") { EP.els.body.replaceChildren(renderSaved()); return }
   if (!EP.draft) EP.draft = emptyDraft()
   const bar = turn() ? barEl() : null
@@ -625,6 +679,7 @@ async function pollOnce() {
   const { latest } = await call("/latest")
   if (!shouldFollow(latest)) return refreshRuns()
   await loadSessions()
+  renderCount()
   await openSession(latest.id, true)
 }
 
@@ -641,6 +696,7 @@ function showBootError(e) {
 async function load() {
   EP.presets = (await call("/presets")).presets
   await loadSessions()
+  renderFilters()
   if (EP.sessions.length) return openSession(EP.sessions[0].id, true)
   await loadEvals()
   return render()
@@ -655,8 +711,9 @@ async function boot() {
 
 function buildShell(root) {
   root.classList.add("quickeval")
-  EP.els = { head: h("header", { class: "ep-head" }), body: h("div", { class: "ep-body" }), toast: h("div", { class: "ep-toast" }) }
-  root.replaceChildren(EP.els.head, EP.els.body, EP.els.toast)
+  EP.els = { head: h("header", { class: "ep-head" }), filters: h("div", { class: "ep-filters" }),
+    body: h("div", { class: "ep-body" }), toast: h("div", { class: "ep-toast" }) }
+  root.replaceChildren(EP.els.head, EP.els.filters, EP.els.body, EP.els.toast)
 }
 
 function mount(root, opts) {
