@@ -159,7 +159,7 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
   .ep-head > .ep-grow { display: none; }
   .ep-tabs { flex: 1; min-width: 0; }
   .ep-tabs .ep-segb { flex: 1 1 auto; min-width: 0; padding: 0 6px; white-space: nowrap; }
-  .ep-railbtn { display: flex; flex-basis: 100%; justify-content: space-between; min-height: 44px; text-align: left; }
+  .ep-railbtn { display: flex; flex-basis: 100%; min-width: 0; max-width: 100%; justify-content: space-between; min-height: 44px; text-align: left; }
   .ep-railbtn-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .ep-chev { color: var(--ep-muted); transition-property: rotate; transition-duration: var(--ep-t); }
   .ep-head.rail-open .ep-chev { rotate: 180deg; }
@@ -168,7 +168,7 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
   .ep-body.rail-open .ep-rail { display: flex; position: absolute; inset: 0; z-index: 20; background-color: var(--ep-bg); border-right: 0; }
   .ep-item { min-height: 52px; justify-content: center; }
   .ep-stage { padding: 14px 12px 20px; }
-  .ep-now { margin: 0; padding: 10px; }
+  .ep-now { margin: 0; }
   .ep-msg { max-width: 94%; }
   .ep-cgrid { grid-template-columns: minmax(0, 1fr); }
   .ep-bar { padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }

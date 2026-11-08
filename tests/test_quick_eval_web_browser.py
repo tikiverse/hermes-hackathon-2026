@@ -17,7 +17,8 @@ import quickeval_log  # noqa: E402
 import quickeval_schema as schema  # noqa: E402
 import standalone  # noqa: E402
 
-SESSIONS = (("newest", "m-new", "Newest chat", 60), ("older", "m-old", "Older chat", 3 * 86400))
+LONG_TITLE = "Newest chat about a topic far too long to fit on one small phone line"
+SESSIONS = (("newest", "m-new", LONG_TITLE, 60), ("older", "m-old", "Older chat", 3 * 86400))
 
 
 SESSION_SQL = Path(__file__).resolve().parent / "quick_eval_ui_session.sql"
@@ -133,7 +134,7 @@ def test_phone_picker_opens_and_closes(page):
     assert page.evaluate("document.documentElement.scrollWidth") <= 390
 
 
-OVERFLOWING = ("[...document.querySelectorAll('.ep-head button, .ep-bar button, .ep-seg')]"
+OVERFLOWING = ("[...document.querySelectorAll('.ep-head, .ep-head button, .ep-bar button, .ep-seg')]"
                ".filter(b => b.scrollWidth > b.clientWidth + 1).length")
 
 
