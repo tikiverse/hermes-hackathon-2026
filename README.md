@@ -60,14 +60,18 @@ Saving the same turn twice updates its eval instead of duplicating it.
 
 ```
 plugin.yaml, __init__.py      plugin entry: registers /eval
-evalpad_core.py               sessions reader, JSONL store, compare, request dispatcher
+evalpad_paths.py              where state, evals and SQL live
+evalpad_sessions.py           reads Hermes sessions (read-only) and groups them into turns
+evalpad_store.py              JSONL eval store
+evalpad_compare.py            replay a prompt on another model
+evalpad_routes.py             one dispatcher for the dashboard and the standalone server
 standalone.py                 stdlib HTTP server (same UI + API)
+sql/                          queries against Hermes state.db
 dashboard/manifest.json       dashboard tab
 dashboard/plugin_api.py       FastAPI router at /api/plugins/evalpad
-dashboard/dist/ui.js          the UI (framework-free)
-dashboard/dist/index.js       built: ui.js + dashboard registration (run ./build.sh after editing ui.js)
+dashboard/dist/index.js       the UI (framework-free; also registers the dashboard tab)
 skills/evalpad/SKILL.md       teaches the agent when to suggest /eval
-tests/test_core.py            python -m unittest discover -s tests
+tests/                        python -m unittest discover -s tests
 ```
 
 ## Notes

@@ -1,11 +1,7 @@
-"""Standalone Evalpad server: `python standalone.py [--port 8765] [--open]`.
-
-Stdlib only, so it works anywhere Hermes does, even when the Hermes dashboard is not
-running. Serves the same UI bundle and the same API as the dashboard plugin.
-"""
-
+"""why: serve the same UI and API without the Hermes dashboard. Stdlib only, so it runs anywhere."""
 import argparse
 import json
+import socket
 import sys
 import threading
 import webbrowser
@@ -15,26 +11,34 @@ from urllib.parse import parse_qsl, urlparse
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import evalpad_core as core  # noqa: E402
+import evalpad_routes as routes  # noqa: E402
 
 DIST = HERE / "dashboard" / "dist"
-
+CTYPES = {".css": "text/css", ".js": "application/javascript"}
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Evalpad</title><link rel="stylesheet" href="/dist/style.css"></head>
 <body class="evalpad-standalone"><div id="root"></div>
-<script src="/dist/ui.js"></script>
+<script src="/dist/index.js"></script>
 <script>EvalpadUI.mount(document.getElementById('root'), {apiBase: '/api'});</script>
 </body></html>"""
+
+
+def read_json(handler):
+    size = int(handler.headers.get("Content-Length") or 0)
+    try:
+        return json.loads(handler.rfile.read(size) or b"{}")
+    except ValueError:
+        return {}
 
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "Evalpad/1.0"
 
-    def log_message(self, *a):  # quiet
-        pass
+    def log_message(self, *_args):
+        return None
 
-    def _send(self, status, body, ctype="application/json"):
+    def send(self, status, body, ctype="application/json"):
         data = body if isinstance(body, bytes) else body.encode()
         self.send_response(status)
         self.send_header("Content-Type", ctype + "; charset=utf-8")
@@ -43,67 +47,73 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
-    def _api(self, method):
-        u = urlparse(self.path)
-        body = None
-        if method in ("POST", "PUT"):
-            n = int(self.headers.get("Content-Length") or 0)
-            try:
-                body = json.loads(self.rfile.read(n) or b"{}")
-            except json.JSONDecodeError:
-                body = {}
-        status, payload = core.handle(method, u.path[len("/api"):], dict(parse_qsl(u.query)), body)
-        if isinstance(payload, tuple) and payload[0] == "text":
-            return self._send(status, payload[1], "application/x-ndjson")
-        self._send(status, json.dumps(payload))
+    def api(self, method):
+        url = urlparse(self.path)
+        body = read_json(self) if method in ("POST", "PUT") else None
+        status, payload = routes.handle(method, url.path[len("/api"):], dict(parse_qsl(url.query)), body)
+        if isinstance(payload, tuple):
+            return self.send(status, payload[1], "application/x-ndjson")
+        return self.send(status, json.dumps(payload))
+
+    def static(self, path):
+        target = (DIST / path[len("/dist/"):]).resolve()
+        if DIST not in target.parents or not target.is_file():
+            return self.send(404, '{"error":"not found"}')
+        return self.send(200, target.read_bytes(), CTYPES.get(target.suffix, "text/plain"))
+
+    def dispatch(self, method):
+        path = urlparse(self.path).path
+        if path.startswith("/api/"):
+            return self.api(method)
+        if method == "GET" and path in ("/", "/index.html"):
+            return self.send(200, PAGE, "text/html")
+        if method == "GET" and path.startswith("/dist/"):
+            return self.static(path)
+        return self.send(404, '{"error":"not found"}')
 
     def do_GET(self):
-        p = urlparse(self.path).path
-        if p.startswith("/api/"):
-            return self._api("GET")
-        if p in ("/", "/index.html"):
-            return self._send(200, PAGE, "text/html")
-        if p.startswith("/dist/"):
-            f = (DIST / p[len("/dist/"):]).resolve()
-            if DIST in f.parents and f.is_file():
-                ctype = "text/css" if f.suffix == ".css" else "application/javascript"
-                return self._send(200, f.read_bytes(), ctype)
-        self._send(404, '{"error":"not found"}')
+        self.dispatch("GET")
 
     def do_POST(self):
-        self._api("POST") if self.path.startswith("/api/") else self._send(404, "{}")
+        self.dispatch("POST")
 
     def do_PUT(self):
-        self._api("PUT") if self.path.startswith("/api/") else self._send(404, "{}")
+        self.dispatch("PUT")
 
     def do_DELETE(self):
-        self._api("DELETE") if self.path.startswith("/api/") else self._send(404, "{}")
+        self.dispatch("DELETE")
 
 
-def serve(port: int = 8765, host: str = "127.0.0.1", open_browser: bool = False) -> ThreadingHTTPServer:
-    srv = ThreadingHTTPServer((host, port), Handler)
+def serve(port=8765, host="127.0.0.1", open_browser=False):
+    server = ThreadingHTTPServer((host, port), Handler)
     if open_browser:
-        threading.Timer(0.4, lambda: webbrowser.open(f"http://{host}:{port}/")).start()
-    return srv
+        threading.Timer(0.4, webbrowser.open, args=[f"http://{host}:{port}/"]).start()
+    return server
 
 
-def is_running(port: int = 8765, host: str = "127.0.0.1") -> bool:
-    import socket
+def is_running(port=8765, host="127.0.0.1"):
+    with socket.socket() as probe:
+        probe.settimeout(0.3)
+        return probe.connect_ex((host, port)) == 0
 
-    with socket.socket() as s:
-        s.settimeout(0.3)
-        return s.connect_ex((host, port)) == 0
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--open", action="store_true")
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    server = serve(args.port, args.host, args.open)
+    print(f"Evalpad running at http://{args.host}:{args.port}/  (Ctrl-C to stop)")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        return
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--port", type=int, default=8765)
-    ap.add_argument("--host", default="127.0.0.1")
-    ap.add_argument("--open", action="store_true")
-    a = ap.parse_args()
-    s = serve(a.port, a.host, a.open)
-    print(f"Evalpad running at http://{a.host}:{a.port}/  (Ctrl-C to stop)")
-    try:
-        s.serve_forever()
-    except KeyboardInterrupt:
-        pass
+    main()
