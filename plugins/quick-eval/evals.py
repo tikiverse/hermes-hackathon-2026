@@ -38,17 +38,10 @@ def resolve_targets(names: list[str], aliases: dict) -> list[Target]:
     return [target_for(name, aliases) for name in names]
 
 
-def usage_of(result):
-    usage = getattr(result, "usage", None)
-    return {"tokens_in": getattr(usage, "input_tokens", None), "tokens_out": getattr(usage, "output_tokens", None),
-            "cost_usd": getattr(usage, "cost_usd", None)}
-
-
 def call_model(complete, prompt, target):
     result = complete([{"role": "user", "content": prompt}], provider=target.provider, model=target.model,
                       purpose="quick-eval")
-    return {"text": result.text or "", "model": getattr(result, "model", None) or target.model,
-            "provider": target.provider or getattr(result, "provider", None), "error": None, **usage_of(result)}
+    return {"text": result.text or "", "model": getattr(result, "model", None) or target.model, "error": None}
 
 
 def ask(complete, prompt, target, label):
@@ -56,21 +49,19 @@ def ask(complete, prompt, target, label):
     try:
         got = call_model(complete, prompt, target)
     except Exception as exc:  # why: one broken model must not sink the whole eval
-        error = f"{type(exc).__name__}: {exc}"
-        got = {"text": "", "model": target.model, "provider": target.provider, "error": error}
+        got = {"text": "", "model": target.model, "error": f"{type(exc).__name__}: {exc}"}
     latency = round((time.perf_counter() - start) * 1000)
-    model, text = got.pop("model"), got.pop("text")
-    return schema.answer(label, "rerun", model, text, alias=target.name, latency_ms=latency, **got)
+    return schema.answer(label, got["model"], got["text"], provider=target.provider, latency_ms=latency,
+                         error=got["error"])
 
 
 def run_eval(turn: dict, targets: list[Target], complete) -> dict:
     """why: answer A is the reply the user saw; B.. are the targets, asked in parallel with only the prompt."""
-    original = schema.answer("A", "original", turn.get("model"), turn["response"])
+    original = schema.answer("A", turn.get("model"), turn["response"])
     jobs = [partial(ask, complete, turn["prompt"], t, label) for t, label in zip(targets, LABELS[1:], strict=False)]
     with ThreadPoolExecutor(max_workers=max(1, len(jobs))) as pool:
         reruns = list(pool.map(call_job, jobs))
-    return schema.run_record(turn["prompt"], [original, *reruns], session_id=turn.get("session_id"),
-                             turn_id=turn.get("turn_id"))
+    return schema.run_record(turn["prompt"], [original, *reruns], session_id=turn.get("session_id"))
 
 
 def call_job(job):
@@ -78,13 +69,13 @@ def call_job(job):
 
 
 def answer_lines(a):
-    tag = "original" if a["role"] == "original" else f"{a.get('latency_ms', 0)} ms"
+    tag = f"{a['latency_ms']} ms" if a.get("latency_ms") is not None else "original"
     body = f"[error] {a['error']}" if a.get("error") else a["text"].strip()
     return [f"── {a['label']} · {a.get('model') or 'unknown'} · {tag} ──", body, ""]
 
 
 def choices(run):
-    return "|".join([a["label"] for a in run["answers"]] + list(schema.SCORE_WORDS))
+    return "|".join([a["label"] for a in run["answers"]] + list(schema.OUTCOMES))
 
 
 def format_eval(run: dict) -> str:
@@ -103,7 +94,7 @@ def parse_pick(raw: str, run: dict) -> dict | str:
     if not parts:
         return f"Usage: /eval pick {choices(run)} [note]"
     word = parts[0]
-    winner = word.lower() if word.lower() in schema.SCORE_WORDS else word.upper()
+    winner = word.lower() if word.lower() in schema.OUTCOMES else word.upper()
     try:
         schema.check_winner(run, winner)
     except ValueError:

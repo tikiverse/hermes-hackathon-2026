@@ -2,7 +2,7 @@
 
 /eval [model ...]               ask; then pick a winner (terminal) or get a /eval pick hint
 /eval pick A|B|tie|none [note]  record the winner of the last /eval
-/eval open                      open the review UI (chats, compare, leaderboard)
+/eval open                      open the UI: review chats, compare answers, leaderboard
 """
 import sys
 import threading
@@ -74,11 +74,10 @@ class QuickEval:
         self.last_run = None
         self.subcommands = {"open": self.cmd_open, "pick": self.cmd_pick}
 
-    def on_post_llm_call(self, user_message=None, assistant_response=None, model=None, session_id=None,
-                         turn_id=None, **kwargs):
+    def on_post_llm_call(self, user_message=None, assistant_response=None, model=None, session_id=None, **kwargs):
         if user_message and assistant_response:
             self.last_turn = {"prompt": user_message, "response": assistant_response, "model": model,
-                              "session_id": session_id, "turn_id": turn_id}
+                              "session_id": session_id}
 
     def cmd_eval(self, raw_args: str = "") -> str:
         words = (raw_args or "").split()

@@ -18,18 +18,10 @@ LMSTUDIO = {"slug": "lmstudio", "name": "LM Studio", "api": "http://localhost:12
 
 
 @dataclass
-class Usage:
-    input_tokens: int = 10
-    output_tokens: int = 20
-    cost_usd: float = 0.001
-
-
-@dataclass
 class Result:
     text: str
     model: str
     provider: str
-    usage: Usage
 
 
 class FakeLLM:
@@ -40,7 +32,7 @@ class FakeLLM:
         self.calls.append({"messages": messages, "provider": provider, "model": model})
         if model == "broken":
             raise RuntimeError("model unavailable")
-        return Result(text=f"answer from {model}", model=model, provider=provider or "main", usage=Usage())
+        return Result(text=f"answer from {model}", model=model, provider=provider or "main")
 
 
 def keep_preselected(items, preselected):
@@ -119,7 +111,7 @@ class Found:
 def build(module, home, config=TRUSTED, ui=None, hermes=(), local=()):
     plugin = module.QuickEval(llm=FakeLLM(), ui=ui or FakeUI(), config=FakeConfig(config, home),
                               find_hermes=Found(hermes), find_local=Found(local))
-    plugin.on_post_llm_call(session_id="s1", turn_id="t1", user_message="What happened at Tiananmen Square in 1989?",
+    plugin.on_post_llm_call(session_id="s1", user_message="What happened at Tiananmen Square in 1989?",
                             assistant_response="Let's talk about something else.", model="deepseek/deepseek-r1")
     return plugin
 
@@ -159,13 +151,13 @@ def test_eval_writes_a_v1_run(make):
         assert call["messages"] == [{"role": "user", "content": "What happened at Tiananmen Square in 1989?"}]
 
     run = log(plugin)[0]
-    assert (run["v"], run["type"], run["session_id"], run["turn_id"]) == (1, "run", "s1", "t1")
+    assert (run["v"], run["type"], run["session_id"]) == (1, "run", "s1")
     assert [a["label"] for a in run["answers"]] == ["A", "B", "C"]
-    assert run["answers"][0] == {"label": "A", "role": "original", "model": "deepseek/deepseek-r1",
+    assert run["answers"][0] == {"label": "A", "model": "deepseek/deepseek-r1",
                                  "text": "Let's talk about something else."}
     rerun = run["answers"][1]
-    assert (rerun["role"], rerun["alias"], rerun["tokens_in"], rerun["tokens_out"]) == ("rerun", "claude", 10, 20)
-    assert rerun["cost_usd"] == 0.001
+    assert (rerun["provider"], rerun["error"]) == ("openrouter", None)
+    assert rerun["latency_ms"] >= 0
     assert "── B · anthropic/claude-sonnet-5-5" in out
     assert "/eval pick A|B|C|tie|none" in out
 
@@ -258,7 +250,6 @@ def test_inline_winner_picker_saves_a_judgment(make):
     assert "Saved: B wins (anthropic/claude-sonnet-5-5)" in out
     run, judged = log(plugin)
     assert (judged["type"], judged["run_id"], judged["winner"]) == ("judgment", run["id"], "B")
-    assert judged["judge"] == "human"
 
 
 def test_skipping_the_inline_picker_leaves_a_hint(make):

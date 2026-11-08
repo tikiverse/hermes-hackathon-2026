@@ -1,4 +1,4 @@
-"""quick-eval web side: v1 schema, append-only log, reports, HTTP routes, legacy lines."""
+"""quick-eval web side: log schema, append-only log, reports, HTTP routes."""
 import json
 import sqlite3
 import sys
@@ -15,14 +15,6 @@ import quickeval_routes as routes  # noqa: E402
 import quickeval_schema as schema  # noqa: E402
 import quickeval_sessions as sessions  # noqa: E402
 
-LEGACY_EVAL = {"type": "eval", "id": "abc12345", "ts": 1, "session_id": "s1", "prompt": "hi",
-               "answers": [{"label": "A", "source": "original", "model": "m0", "text": "x"},
-                           {"label": "B", "source": "rerun", "model": "m1", "text": "y"}]}
-LEGACY_SCORE = {"type": "score", "eval_id": "abc12345", "ts": 2, "winner": "B", "note": "old"}
-LEGACY_GRADE = {"id": "g1", "ts": 3, "session_id": "s1", "message_id": 1, "prompt": "2+2?", "response": "4",
-                "model": "m0", "verdict": "pass", "score": 5, "tags": ["great"], "notes": "fine"}
-
-
 @pytest.fixture(autouse=True)
 def state(tmp_path, monkeypatch):
     monkeypatch.setenv("QUICKEVAL_DIR", str(tmp_path / "evals"))
@@ -34,8 +26,7 @@ def state(tmp_path, monkeypatch):
 
 
 def two_model_run(prompt="hi", ts=None, models=("m0", "m1")):
-    answers = [schema.answer("A", "original", models[0], "x"),
-               schema.answer("B", "rerun", models[1], "y", latency_ms=200, cost_usd=0.01)]
+    answers = [schema.answer("A", models[0], "x"), schema.answer("B", models[1], "y", latency_ms=200)]
     record = schema.run_record(prompt, answers, session_id="s1")
     return reports.log().append({**record, "ts": ts or record["ts"]})
 
@@ -59,10 +50,10 @@ def test_grading_a_chat_turn_makes_one_run_and_appends_judgments():
     turn = sessions.get_turns("s1")["turns"][0]
     body = {"session_id": "s1", "message_id": turn["message_id"], "prompt": turn["prompt"], "response": "4",
             "model": "m0"}
-    first = reports.save_judgment({**body, "scores": {"A": {"verdict": "pass", "score": 5, "tags": ["great"]}}})
+    first = reports.save_judgment({**body, "verdict": "pass"})
     second = reports.save_judgment({**body, "note": "ok"})
     assert first["id"] == second["id"]
-    assert second["judgment"]["scores"]["A"]["verdict"] == "pass"
+    assert second["judgment"]["verdict"] == "pass"
     assert second["judgment"]["note"] == "ok"
     types = [json.loads(line)["type"] for line in reports.log().raw().splitlines()]
     assert types == ["run", "judgment", "judgment"]
@@ -72,13 +63,9 @@ def test_grading_a_chat_turn_makes_one_run_and_appends_judgments():
 def test_validation():
     run = two_model_run()
     with pytest.raises(ValueError):
-        reports.save_judgment({"run_id": run["id"], "scores": {"A": {"score": 9}}})
-    with pytest.raises(ValueError):
-        reports.save_judgment({"run_id": run["id"], "scores": {"A": {"verdict": "maybe"}}})
+        reports.save_judgment({"run_id": run["id"], "verdict": "maybe"})
     with pytest.raises(ValueError):
         reports.save_judgment({"run_id": run["id"], "winner": "Z"})
-    with pytest.raises(ValueError):
-        reports.save_judgment({"run_id": run["id"], "scores": {"Q": {"score": 3}}})
     with pytest.raises(ValueError):
         reports.save_judgment({"prompt": ""})
 
@@ -86,11 +73,11 @@ def test_validation():
 def test_winner_kept_unless_sent():
     run = two_model_run()
     reports.save_judgment({"run_id": run["id"], "winner": "B"})
-    kept = reports.save_judgment({"run_id": run["id"], "scores": {"A": {"score": 2}}})
-    assert kept["judgment"]["winner"] == "B"
+    kept = reports.save_judgment({"run_id": run["id"], "note": "close call"})
+    assert (kept["judgment"]["winner"], kept["judgment"]["note"]) == ("B", "close call")
     cleared = reports.save_judgment({"run_id": run["id"], "winner": None})
     assert cleared["judgment"]["winner"] is None
-    assert cleared["judgment"]["scores"]["A"]["score"] == 2
+    assert cleared["judgment"]["note"] == "close call"
 
 
 def test_torn_line_tolerated():
@@ -100,45 +87,39 @@ def test_torn_line_tolerated():
     assert len(reports.list_runs({})) == 1
 
 
-def test_legacy_lines_read_as_v1():
-    write_lines(LEGACY_EVAL, LEGACY_SCORE, LEGACY_GRADE)
-    runs = {r["id"]: r for r in reports.list_runs({})}
-    old_eval = runs["abc12345"]
-    assert [a["role"] for a in old_eval["answers"]] == ["original", "rerun"]
-    assert (old_eval["judgment"]["winner"], old_eval["judgment"]["note"]) == ("B", "old")
-    grade = runs["r_g1"]
-    assert grade["answers"][0]["text"] == "4"
-    assert grade["judgment"]["scores"]["A"] == {"score": 5, "verdict": "pass", "tags": ["great"]}
+def test_unknown_line_types_ignored():
+    write_lines({"type": "grade", "prompt": "old"}, {"no": "type"})
+    two_model_run()
+    assert len(reports.list_runs({})) == 1
 
 
 def test_filters():
     two_model_run("cats", ts=1)
     two_model_run("dogs", models=("m0", "m2"))
-    reports.log().append(schema.run_record("solo", [schema.answer("A", "original", "m0", "x")], session_id="s1"))
+    reports.log().append(schema.run_record("solo", [schema.answer("A", "m0", "x")], session_id="s1"))
     prompts = [r["prompt"] for r in reports.list_runs({"multi": "1"})]
     assert prompts == ["dogs", "cats"]
     assert [r["prompt"] for r in reports.list_runs({"since": "3600", "multi": "1"})] == ["dogs"]
-    assert [r["prompt"] for r in reports.list_runs({"model": "m2"})] == ["dogs"]
+    assert [r["prompt"] for r in reports.list_runs({"q": "m2"})] == ["dogs"]
     assert [r["prompt"] for r in reports.list_runs({"q": "CAT"})] == ["cats"]
 
 
 def test_leaderboard_counts_wins_only_in_contests():
     first, second = two_model_run("a"), two_model_run("b")
-    reports.save_judgment({"run_id": first["id"], "winner": "B", "scores": {"B": {"score": 4}}})
+    two_model_run("unjudged")
+    reports.save_judgment({"run_id": first["id"], "winner": "B"})
     reports.save_judgment({"run_id": second["id"], "winner": "tie"})
     rows = {r["model"]: r for r in reports.leaderboard({})}
-    assert (rows["m1"]["wins"], rows["m1"]["contests"], rows["m1"]["win_rate"]) == (1, 2, 0.5)
-    assert (rows["m0"]["wins"], rows["m0"]["ties"], rows["m0"]["win_rate"]) == (0, 1, 0.0)
-    assert rows["m1"]["avg_score"] == 4
-    assert (rows["m1"]["avg_latency_ms"], rows["m1"]["cost_usd"]) == (200, 0.02)
+    assert rows["m1"] == {"model": "m1", "answers": 3, "wins": 1, "contests": 2, "win_rate": 0.5}
+    assert (rows["m0"]["wins"], rows["m0"]["win_rate"]) == (0, 0.0)
     assert reports.leaderboard({})[0]["model"] == "m1"
 
 
 def test_stats():
     run = two_model_run()
-    reports.save_judgment({"run_id": run["id"], "scores": {"A": {"verdict": "pass", "score": 4},
-                                                           "B": {"verdict": "fail", "score": 2}}})
-    assert reports.stats() == {"runs": 1, "judged": 1, "pass_rate": 0.5, "avg_score": 3}
+    two_model_run()
+    reports.save_judgment({"run_id": run["id"], "winner": "A"})
+    assert reports.stats() == {"runs": 2, "judged": 1}
 
 
 def test_routes():

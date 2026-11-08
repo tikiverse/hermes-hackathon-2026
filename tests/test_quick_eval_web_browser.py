@@ -32,13 +32,12 @@ def add_session(conn, row, now):
 
 
 def add_run(path):
-    answers = [schema.answer("A", "original", "m-new", "ok"),
-               schema.answer("B", "rerun", "m-rival", "better", latency_ms=900, cost_usd=0.002)]
+    answers = [schema.answer("A", "m-new", "ok"), schema.answer("B", "m-rival", "better", latency_ms=900)]
     quickeval_log.EvalLog(path).append(schema.run_record("ask newest", answers, session_id="newest"))
 
 
 def judgments(page_path):
-    return [r for r in quickeval_log.EvalLog(page_path).records() if r["type"] == "judgment"]
+    return quickeval_log.EvalLog(page_path).records("judgment")
 
 
 def seed(db):
@@ -70,27 +69,23 @@ def page(tmp_path, monkeypatch):
     server.shutdown()
 
 
-def test_picked_session_survives_live_poll(page):
-    page.select_option(".ep-session", "older")
+def rail_titles(page):
+    return page.locator(".ep-rail-list .ep-item .ep-item-t")
+
+
+def test_current_chat_pinned_and_picked_chat_survives_poll(page):
+    sync_api.expect(rail_titles(page).first).to_have_text("Current chat")
+    page.click(".ep-rail-list .ep-item:has-text('Older chat')")
     page.wait_for_timeout(7000)
-    assert page.input_value(".ep-session") == "older"
-    assert not page.is_checked(".ep-live input")
+    assert page.locator(".ep-item.on").inner_text().startswith("Older chat")
 
 
-def test_filters_narrow_session_list(page):
-    page.click(".ep-filters .ep-segb:has-text('Day')")
-    assert page.locator(".ep-session option").count() == 1
-    page.click(".ep-filters .ep-segb:has-text('All time')")
-    page.select_option(".ep-filters select", "m-old")
-    assert "1 of" in page.inner_text(".ep-count")
-    page.select_option(".ep-filters select", "")
-    page.fill(".ep-search", "older")
-    assert "1 of" in page.inner_text(".ep-count")
-
-
-def test_selected_turn_has_no_accent_bar(page):
-    shadow = page.eval_on_selector(".ep-turn.on", "el => getComputedStyle(el).boxShadow")
-    assert shadow == "none"
+def test_rail_filters_narrow_the_chat_list(page):
+    page.click(".ep-rail .ep-segb:has-text('Day')")
+    sync_api.expect(rail_titles(page)).to_have_text(["Current chat"])
+    page.click(".ep-rail .ep-segb:has-text('All')")
+    page.fill(".ep-search", "m-old")
+    sync_api.expect(rail_titles(page)).to_have_text(["Current chat", "Older chat"])
 
 
 def test_compare_pick_winner_and_leaderboard(page):
@@ -100,22 +95,29 @@ def test_compare_pick_winner_and_leaderboard(page):
     page.keyboard.press("b")
     assert page.locator(".ep-col.won").count() == 1
     page.click(".ep-bar .ep-btn.pri")
-    page.wait_for_selector(".ep-runbtn .ep-label:has-text('B')")
+    page.wait_for_selector(".ep-rail-list .ep-label:has-text('B')")
     assert [j["winner"] for j in judgments(page.evals_path)] == ["B"]
     page.click(".ep-head .ep-segb:has-text('Leaderboard')")
     page.wait_for_selector(".ep-table tbody tr")
     assert page.inner_text(".ep-table tbody tr:first-child td:first-child") == "m-rival"
 
 
+def test_review_verdict_saves_a_judgment(page):
+    page.keyboard.press("p")
+    page.click(".ep-bar .ep-btn.pri")
+    page.wait_for_selector(".ep-toast.on")
+    assert [j["verdict"] for j in judgments(page.evals_path)] == ["pass"]
+
+
 def test_blind_mode_hides_models_until_judged(page):
     page.click(".ep-head .ep-segb:has-text('Compare')")
     page.wait_for_selector(".ep-cgrid .ep-col")
-    page.check(".ep-toolbar .ep-live input")
+    page.check(".ep-prompt .ep-check input")
     assert page.inner_text(".ep-cgrid .ep-col:nth-child(2) .ep-col-h b") == "Model B"
 
 
-def test_no_null_text_in_chrome(page):
+def test_no_null_text_anywhere(page):
     for tab in ("Review", "Compare", "Leaderboard"):
         page.click(f".ep-head .ep-segb:has-text('{tab}')")
         page.wait_for_timeout(300)
-        assert "null" not in page.inner_text(".ep-head") + page.inner_text(".ep-filters")
+        assert "null" not in page.inner_text(".quickeval")

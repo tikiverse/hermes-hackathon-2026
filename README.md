@@ -79,17 +79,13 @@ The first start copies `docker/config.yaml` into a `hermes-home` volume. Hermes'
 
 | Tab | Use | Keys |
 |---|---|---|
-| Review | one chat as a transcript; grade a turn pass/fail, 1-5, tags, note | `j`/`k`, `p`/`f`, `1`-`5`, `Cmd+Enter` |
-| Compare | one prompt, a column per model; pick a winner, score columns, blind mode, save & next unjudged | `j`/`k`, `a`-`e`, `t`, `n`, `←`/`→`, `1`-`5`, `Cmd+Enter` |
-| Leaderboard | per model: wins, win %, avg score, errors, latency, cost | |
+| Review | your chats (current one pinned); grade a turn pass/fail, add a note or expected answer | `j`/`k`, `p`/`f`, `Cmd+Enter` |
+| Compare | one prompt, a column per model; click the best, blind mode, save & next unjudged | `j`/`k`, `a`-`e`, `t`, `n`, `Cmd+Enter` |
+| Leaderboard | per model: wins and win % over the runs you judged | |
 
-### Log format (v1)
+### Your evals are a plain file
 
-Append-only; a line is never rewritten. Spec: [docs/compare-view.md](docs/compare-view.md).
-
-- `run`: one prompt, answers `A` (the reply you saw, `role: original`), `B`.. (`role: rerun`, with `latency_ms`, `tokens_in`, `tokens_out`, `cost_usd`, `error`).
-- `judgment`: `run_id`, `winner` (label, `tie`, `none`), `scores` per label (`score`, `verdict`, `tags`), `note`, `expected`. Newest per run wins.
-- Older `eval`, `score` and `grade` lines are still read and mapped to v1.
+Everything lands in `~/.hermes/evals/evals.jsonl`: one `run` line per `/eval`, one `judgment` line per pick or grade. Format: [docs/eval-log.md](docs/eval-log.md). **Export JSONL** in the UI downloads it.
 
 ## Setup
 
@@ -112,7 +108,7 @@ tests/
   test_hermes_load.py       loads each plugin with Hermes's real PluginManager
   test_quick_eval.py        quick-eval behavior, with fake models, UI, and config
   test_quick_eval_e2e.py    quick-eval inside real Hermes, against a fake model server
-  test_quick_eval_web.py    log schema, legacy lines, reports, HTTP routes
+  test_quick_eval_web.py    log format, reports, HTTP routes
   test_quick_eval_web_browser.py  the UI in Chromium (`uv run --with playwright pytest`)
 scripts/link-plugins.sh
 ```

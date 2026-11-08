@@ -38,20 +38,16 @@ class EvalLog:
             return ""
         return self.path.read_text(encoding="utf-8")
 
-    def records(self):
+    def records(self, kind):
         parsed = [parse(line) for line in self.raw().splitlines() if line.strip()]
-        return [rec for line in parsed if line for rec in schema.normalize(line)]
+        return [rec for rec in parsed if rec and rec.get("type") == kind]
 
     def runs(self):
-        return [r for r in self.records() if r["type"] == schema.RUN]
+        return self.records(schema.RUN)
 
-    def judgments(self, judge=schema.HUMAN):
+    def judgments(self):
         """why: newest judgment per run wins; older ones stay in the file as history."""
-        latest = {}
-        for rec in sorted(self.records(), key=ts_of):
-            if rec["type"] == schema.JUDGMENT and rec.get("judge") == judge:
-                latest[rec["run_id"]] = rec
-        return latest
+        return {rec["run_id"]: rec for rec in sorted(self.records(schema.JUDGMENT), key=ts_of)}
 
     def latest_run(self):
         runs = sorted(self.runs(), key=ts_of)
