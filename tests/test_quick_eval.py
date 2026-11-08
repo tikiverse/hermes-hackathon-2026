@@ -1,6 +1,7 @@
 import copy
 import json
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 
 import pytest
@@ -13,6 +14,14 @@ TRUSTED = {"plugins": {"entries": {"quick-eval": {
         "local": {"provider": "ollama", "model": "llama3.3"},
     },
 }}}}
+LMSTUDIO = {"slug": "lmstudio", "name": "LM Studio", "api": "http://localhost:1234/v1", "models": ["qwen3-8b"]}
+
+
+@dataclass
+class Usage:
+    input_tokens: int = 10
+    output_tokens: int = 20
+    cost_usd: float = 0.001
 
 
 @dataclass
@@ -20,6 +29,7 @@ class Result:
     text: str
     model: str
     provider: str
+    usage: Usage
 
 
 class FakeLLM:
@@ -30,15 +40,29 @@ class FakeLLM:
         self.calls.append({"messages": messages, "provider": provider, "model": model})
         if model == "broken":
             raise RuntimeError("model unavailable")
-        return Result(text=f"answer from {model}", model=model, provider=provider or "main")
+        return Result(text=f"answer from {model}", model=model, provider=provider or "main", usage=Usage())
+
+
+def keep_preselected(items, preselected):
+    return sorted(preselected)
+
+
+def pick_last(items, preselected):
+    return [len(items) - 1]
+
+
+def pick_none(items, preselected):
+    return []
 
 
 class FakeUI:
-    def __init__(self, interactive=False, confirm=True, pick=None):
+    def __init__(self, interactive=False, confirm=True, pick=keep_preselected, winner=None):
         self.interactive = interactive
         self.confirm_answer = confirm
         self.pick = pick
+        self.winner = winner
         self.picker_calls = []
+        self.single_calls = []
         self.said = []
 
     def confirm(self, question, **kwargs):
@@ -46,7 +70,11 @@ class FakeUI:
 
     def pick_many(self, title, items, preselected):
         self.picker_calls.append({"items": items, "preselected": preselected})
-        return self.pick(items) if self.pick else sorted(preselected)
+        return self.pick(items, preselected)
+
+    def pick_one(self, title, items, cancel="Skip"):
+        self.single_calls.append(items)
+        return self.winner if self.interactive else None
 
     def say(self, text):
         self.said.append(text)
@@ -80,35 +108,37 @@ class FakeConfig:
         return self._home
 
 
+class Found:
+    def __init__(self, items):
+        self.items = list(items)
+
+    def __call__(self):
+        return list(self.items)
+
+
+def build(module, home, config=TRUSTED, ui=None, hermes=(), local=()):
+    plugin = module.QuickEval(llm=FakeLLM(), ui=ui or FakeUI(), config=FakeConfig(config, home),
+                              find_hermes=Found(hermes), find_local=Found(local))
+    plugin.on_post_llm_call(session_id="s1", turn_id="t1", user_message="What happened at Tiananmen Square in 1989?",
+                            assistant_response="Let's talk about something else.", model="deepseek/deepseek-r1")
+    return plugin
+
+
 @pytest.fixture
-def make(load, tmp_path):
-    module = load("quick-eval").module
+def module(load):
+    return load("quick-eval").module
 
-    def build(config=TRUSTED, ui=None, hermes=(), local=()):
-        plugin = module.QuickEval(
-            llm=FakeLLM(),
-            ui=ui or FakeUI(),
-            config=FakeConfig(config, tmp_path),
-            find_hermes=lambda: list(hermes),
-            find_local=lambda: list(local),
-        )
-        plugin.on_post_llm_call(
-            session_id="s1",
-            user_message="What happened at Tiananmen Square in 1989?",
-            assistant_response="Let's talk about something else.",
-            model="deepseek/deepseek-r1",
-        )
-        return plugin
 
-    return build
+@pytest.fixture
+def make(module, tmp_path):
+    return partial(build, module, tmp_path)
 
 
 def log(plugin):
     return [json.loads(line) for line in Path(plugin.store.path).read_text().splitlines()]
 
 
-def test_eval_before_any_turn(load, tmp_path):
-    module = load("quick-eval").module
+def test_eval_before_any_turn(module, tmp_path):
     plugin = module.QuickEval(llm=FakeLLM(), ui=FakeUI(), config=FakeConfig(TRUSTED, tmp_path))
     assert "Ask the agent something first" in plugin.cmd_eval("")
 
@@ -119,35 +149,31 @@ def test_hook_ignores_incomplete_turns(make):
     assert plugin.last_turn["prompt"].startswith("What happened")
 
 
-def test_eval_with_aliases(make):
+def test_eval_writes_a_v1_run(make):
     plugin = make()
     out = plugin.cmd_eval("claude local")
 
     assert [(c["provider"], c["model"]) for c in plugin.llm.calls] == [
-        ("openrouter", "anthropic/claude-sonnet-5-5"),
-        ("ollama", "llama3.3"),
-    ]
+        ("openrouter", "anthropic/claude-sonnet-5-5"), ("ollama", "llama3.3")]
     for call in plugin.llm.calls:
         assert call["messages"] == [{"role": "user", "content": "What happened at Tiananmen Square in 1989?"}]
 
-    record = log(plugin)[0]
-    assert record["type"] == "eval"
-    assert [a["label"] for a in record["answers"]] == ["A", "B", "C"]
-    assert record["answers"][0] == {
-        "label": "A", "source": "original", "model": "deepseek/deepseek-r1",
-        "text": "Let's talk about something else.",
-    }
+    run = log(plugin)[0]
+    assert (run["v"], run["type"], run["session_id"], run["turn_id"]) == (1, "run", "s1", "t1")
+    assert [a["label"] for a in run["answers"]] == ["A", "B", "C"]
+    assert run["answers"][0] == {"label": "A", "role": "original", "model": "deepseek/deepseek-r1",
+                                 "text": "Let's talk about something else."}
+    rerun = run["answers"][1]
+    assert (rerun["role"], rerun["alias"], rerun["tokens_in"], rerun["tokens_out"]) == ("rerun", "claude", 10, 20)
+    assert rerun["cost_usd"] == 0.001
     assert "── B · anthropic/claude-sonnet-5-5" in out
-    assert "/score A|B|C|tie|none" in out
+    assert "/eval pick A|B|C|tie|none" in out
 
 
 def test_eval_raw_model_ids(make):
     plugin = make()
     plugin.cmd_eval("llama3.3@ollama openai/gpt-5")
-    assert [(c["provider"], c["model"]) for c in plugin.llm.calls] == [
-        ("ollama", "llama3.3"),
-        (None, "openai/gpt-5"),
-    ]
+    assert [(c["provider"], c["model"]) for c in plugin.llm.calls] == [("ollama", "llama3.3"), (None, "openai/gpt-5")]
 
 
 def test_failing_model_does_not_sink_the_eval(make):
@@ -161,8 +187,7 @@ def test_failing_model_does_not_sink_the_eval(make):
 
 def test_untrusted_and_declined(make):
     plugin = make(config={}, ui=FakeUI(confirm=False))
-    out = plugin.cmd_eval("claude")
-    assert "can't call other models" in out
+    assert "can't call other models" in plugin.cmd_eval("claude")
     assert plugin.llm.calls == []
     assert plugin.config.saves == []
 
@@ -190,14 +215,10 @@ def test_bare_eval_without_terminal_or_defaults(make):
 
 def test_picker_lists_aliases_hermes_models_and_local_servers(make):
     ui = FakeUI(interactive=True)
-    plugin = make(
-        ui=ui,
-        hermes=[("openrouter", "anthropic/claude-sonnet-5-5"), ("openrouter", "openai/gpt-5")],
-        local=[{"slug": "lmstudio", "name": "LM Studio", "api": "http://localhost:1234/v1", "models": ["qwen3-8b"]}],
-    )
+    plugin = make(ui=ui, hermes=[("openrouter", "anthropic/claude-sonnet-5-5"), ("openrouter", "openai/gpt-5")],
+                  local=[LMSTUDIO])
     plugin.cmd_eval("")
-    items = ui.picker_calls[0]["items"]
-    assert items == [
+    assert ui.picker_calls[0]["items"] == [
         "claude: anthropic/claude-sonnet-5-5 · openrouter",
         "local: llama3.3 · ollama",
         "openai/gpt-5 · openrouter",
@@ -208,87 +229,92 @@ def test_picker_lists_aliases_hermes_models_and_local_servers(make):
 
 
 def test_picking_a_local_server_adds_it_to_hermes(make):
-    ui = FakeUI(interactive=True, pick=lambda items: [len(items) - 1])
-    plugin = make(
-        ui=ui,
-        local=[{"slug": "lmstudio", "name": "LM Studio", "api": "http://localhost:1234/v1", "models": ["qwen3-8b"]}],
-    )
+    plugin = make(ui=FakeUI(interactive=True, pick=pick_last), local=[LMSTUDIO])
     plugin.cmd_eval("")
     assert plugin.config.data["providers"]["lmstudio"] == {"name": "LM Studio", "api": "http://localhost:1234/v1"}
-    assert plugin.llm.calls[0]["provider"] == "lmstudio"
-    assert plugin.llm.calls[0]["model"] == "qwen3-8b"
+    assert (plugin.llm.calls[0]["provider"], plugin.llm.calls[0]["model"]) == ("lmstudio", "qwen3-8b")
 
 
 def test_local_server_already_in_hermes_is_not_offered_again(make):
     config = copy.deepcopy(TRUSTED)
     config["providers"] = {"lms": {"api": "http://localhost:1234/v1/"}}
     ui = FakeUI(interactive=True)
-    plugin = make(
-        config=config,
-        ui=ui,
-        local=[{"slug": "lmstudio", "name": "LM Studio", "api": "http://localhost:1234/v1", "models": ["qwen3-8b"]}],
-    )
-    plugin.cmd_eval("")
+    make(config=config, ui=ui, local=[LMSTUDIO]).cmd_eval("")
     assert not any("LM Studio" in item for item in ui.picker_calls[0]["items"])
 
 
 def test_picker_cancelled(make):
-    plugin = make(ui=FakeUI(interactive=True, pick=lambda items: []))
+    plugin = make(ui=FakeUI(interactive=True, pick=pick_none))
     assert plugin.cmd_eval("") == "No models picked."
     assert plugin.llm.calls == []
 
 
-def test_score_flow(make):
+def test_inline_winner_picker_saves_a_judgment(make):
+    ui = FakeUI(interactive=True, winner=1)
+    plugin = make(ui=ui)
+    out = plugin.cmd_eval("claude")
+    assert ui.single_calls[0] == ["A · deepseek/deepseek-r1", "B · anthropic/claude-sonnet-5-5", "Tie",
+                                  "No good answer"]
+    assert "Saved: B wins (anthropic/claude-sonnet-5-5)" in out
+    run, judged = log(plugin)
+    assert (judged["type"], judged["run_id"], judged["winner"]) == ("judgment", run["id"], "B")
+    assert judged["judge"] == "human"
+
+
+def test_skipping_the_inline_picker_leaves_a_hint(make):
+    plugin = make(ui=FakeUI(interactive=True, winner=None, pick=keep_preselected))
+    assert "Pick a winner: /eval pick A|B|tie|none" in plugin.cmd_eval("claude")
+    assert [r["type"] for r in log(plugin)] == ["run"]
+
+
+def test_pick_flow(make):
     plugin = make()
-    assert "Run /eval first" in plugin.cmd_score("B")
+    assert "Run /eval first" in plugin.cmd_eval("pick B")
     plugin.cmd_eval("claude")
-
-    assert "Unknown choice 'Z'" in plugin.cmd_score("Z")
-    out = plugin.cmd_score("b answered directly")
-    assert "B wins (anthropic/claude-sonnet-5-5)" in out
-
-    score = log(plugin)[-1]
-    assert score["type"] == "score"
-    assert score["eval_id"] == log(plugin)[0]["id"]
-    assert score["winner"] == "B"
-    assert score["note"] == "answered directly"
+    assert "Usage: /eval pick" in plugin.cmd_eval("pick")
+    assert "Unknown choice 'Z'" in plugin.cmd_eval("pick Z")
+    assert "B wins (anthropic/claude-sonnet-5-5)" in plugin.cmd_eval("pick b answered directly")
+    judged = log(plugin)[-1]
+    assert (judged["run_id"], judged["winner"], judged["note"]) == (log(plugin)[0]["id"], "B", "answered directly")
 
 
-def test_score_tie_and_none(make):
+def test_pick_tie_and_none(make):
     plugin = make()
     plugin.cmd_eval("claude")
-    assert "tie" in plugin.cmd_score("tie")
-    assert "no good answer" in plugin.cmd_score("none")
+    assert "tie" in plugin.cmd_eval("pick tie")
+    assert "no good answer" in plugin.cmd_eval("pick NONE")
     assert [r["winner"] for r in log(plugin)[1:]] == ["tie", "none"]
 
 
-def test_score_after_restart_reads_log(make, load, tmp_path):
-    first = make()
-    first.cmd_eval("claude")
-    module = load("quick-eval").module
+def test_pick_after_restart_reads_log(make, module, tmp_path):
+    make().cmd_eval("claude")
     second = module.QuickEval(llm=FakeLLM(), ui=FakeUI(), config=FakeConfig(TRUSTED, tmp_path))
-    assert "B wins" in second.cmd_score("B")
+    assert "B wins" in second.cmd_eval("pick B")
 
 
-def test_local_server_probe(load):
-    discover = load("quick-eval").module.discover
-
-    def fetch(api, timeout):
-        if "11434" in api:
-            return ["llama3.3", "qwen3"]
-        raise ConnectionRefusedError
-
-    found = discover.local_servers(fetch=fetch)
-    assert found == [{"slug": "ollama", "name": "Ollama", "api": "http://localhost:11434/v1", "models": ["llama3.3", "qwen3"]}]
+def test_only_one_command_is_registered(load):
+    ctx = load("quick-eval").ctx
+    assert list(ctx.commands) == ["eval"]
+    assert "pick" in ctx.commands["eval"]["args_hint"]
 
 
-def test_local_server_host_override(load, monkeypatch):
-    discover = load("quick-eval").module.discover
+def refuse(api, timeout):
+    if "11434" in api:
+        return ["llama3.3", "qwen3"]
+    raise ConnectionRefusedError
+
+
+def test_local_server_probe(module):
+    found = module.discover.local_servers(fetch=refuse)
+    assert found == [{"slug": "ollama", "name": "Ollama", "api": "http://localhost:11434/v1",
+                      "models": ["llama3.3", "qwen3"]}]
+
+
+def test_local_server_host_override(module, monkeypatch):
     monkeypatch.setenv("QUICK_EVAL_LOCAL_HOST", "host.docker.internal")
-    assert discover.default_servers()[0] == ("ollama", "Ollama", "http://host.docker.internal:11434/v1")
+    assert module.discover.default_servers()[0] == ("ollama", "Ollama", "http://host.docker.internal:11434/v1")
 
 
-def test_file_link_is_clickable(load, tmp_path):
-    ui = load("quick-eval").module.ui
-    link = ui.file_link(tmp_path / "config.yaml")
+def test_file_link_is_clickable(module, tmp_path):
+    link = module.ui.file_link(tmp_path / "config.yaml")
     assert link.startswith("\033]8;;file://") and link.endswith("\033]8;;\033\\")

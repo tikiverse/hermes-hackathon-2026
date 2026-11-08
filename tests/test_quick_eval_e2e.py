@@ -101,7 +101,7 @@ def test_eval_and_score_through_real_hermes(tmp_path, fake_server):
     assert user_messages[-1]["content"] == "What happened at Tiananmen Square in 1989?"
 
     lines = [json.loads(l) for l in (tmp_path / "evals" / "evals.jsonl").read_text().splitlines()]
-    assert [r["type"] for r in lines] == ["eval", "score"]
+    assert [r["type"] for r in lines] == ["run", "judgment"]
     assert lines[0]["answers"][1]["model"] == "fake-model"
     assert lines[1]["winner"] == "B"
 

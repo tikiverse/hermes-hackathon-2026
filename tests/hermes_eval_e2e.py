@@ -1,4 +1,4 @@
-"""Drive quick-eval inside real Hermes: load plugins, fire post_llm_call, run /eval and /score.
+"""Drive quick-eval inside real Hermes: load plugins, fire post_llm_call, run /eval and /eval pick.
 
 Run in a subprocess with HERMES_HOME already set up. Prints the command outputs as JSON.
 """
@@ -23,5 +23,5 @@ invoke_hook(
     platform="cli",
 )
 eval_out = get_plugin_command_handler("eval")(eval_args)
-score_out = get_plugin_command_handler("score")(score_args)
+score_out = get_plugin_command_handler("eval")("pick " + score_args)
 print(json.dumps({"eval": eval_out, "score": score_out}))

@@ -4,7 +4,7 @@ Plugins for [Hermes Agent](https://hermes-agent.nousresearch.com/docs/user-guide
 
 ## quick-eval
 
-Ask the agent something, then run `/eval` to ask other models the same question and see every answer side by side. `/score` records which one won. Each eval and score is appended to `~/.hermes/evals/evals.jsonl`.
+Ask the agent something, then run `/eval` to ask other models the same question, see every answer side by side, and pick the winner. Runs and picks are appended to `~/.hermes/evals/evals.jsonl`; `/eval open` shows them in a browser.
 
 ```
 > What happened at Tiananmen Square in 1989?
@@ -21,10 +21,10 @@ I'm sorry, I can't discuss that topic.
 ── B · anthropic/claude-sonnet-5.5 · 2140 ms ──
 On June 3–4, 1989, the Chinese army cleared the square...
 
-Score it: /score A|B|tie|none [note]
+  (Which answer wins? A · B · Tie · No good answer · Skip)
+Saved: B wins (anthropic/claude-sonnet-5.5) for eval r_3f9a1c2e.
 
-> /score B answered directly
-Saved: B wins (anthropic/claude-sonnet-5.5) for eval 3f9a1c2e.
+> /eval pick B answered directly      # same thing from a gateway, or to change your pick
 ```
 
 - **Answer A** is the agent's reply exactly as you saw it. The other models get only your last question, with no system prompt or history, and run in parallel.
@@ -73,16 +73,23 @@ The first start copies `docker/config.yaml` into a `hermes-home` volume. Hermes'
 - **Local models:** the container looks for Ollama, LM Studio, and vLLM on your machine through `host.docker.internal`. Docker Desktop on a Mac reaches them as they are. On Linux, the servers must listen on all interfaces rather than only `localhost` (for Ollama, set `OLLAMA_HOST=0.0.0.0`).
 - **Without Compose:** `docker build -t hermes-quick-eval .` then `docker run -it --rm -e OPENROUTER_API_KEY -v hermes-home:/data/hermes hermes-quick-eval`.
 
-## quick-eval-ui
+### Review UI
 
-A browser view of your Hermes chats for grading turns and judging quick-eval runs. It reads `~/.hermes/state.db` read-only and writes to the same `evals.jsonl`.
+`/eval open` opens `http://127.0.0.1:8765` (also a **Quick Eval** tab in `hermes dashboard`; without Hermes: `uv run python plugins/quick-eval/standalone.py --open`). It reads `~/.hermes/state.db` read-only.
 
-- **`/evals open`** opens it at `http://127.0.0.1:8765`. It also shows as a **Quick Eval** tab in `hermes dashboard`.
-- **Grade a turn:** `p`/`f` pass or fail, `1`-`5` score, tags, a note, then `Cmd+Enter` saves and moves to the next turn. `/evals good|bad|1-5 [note]` grades the last turn from the chat.
-- **Compare:** when you've run `/eval` on a turn, its answers (A, B, C…) sit side by side. Pick a winner (or Tie, or No good answer) and save: that writes the same `score` line `/score` would.
-- **Without Hermes running:** `uv run python plugins/quick-eval-ui/standalone.py --open`.
+| Tab | Use | Keys |
+|---|---|---|
+| Review | one chat as a transcript; grade a turn pass/fail, 1-5, tags, note | `j`/`k`, `p`/`f`, `1`-`5`, `Cmd+Enter` |
+| Compare | one prompt, a column per model; pick a winner, score columns, blind mode, save & next unjudged | `j`/`k`, `a`-`e`, `t`, `n`, `←`/`→`, `1`-`5`, `Cmd+Enter` |
+| Leaderboard | per model: wins, win %, avg score, errors, latency, cost | |
 
-Grades are `{"type": "grade", "verdict": "pass", "score": 4, "tags": [...], "notes": "...", ...}` lines. Saving a turn twice updates its grade instead of adding a line.
+### Log format (v1)
+
+Append-only; a line is never rewritten. Spec: [docs/compare-view.md](docs/compare-view.md).
+
+- `run`: one prompt, answers `A` (the reply you saw, `role: original`), `B`.. (`role: rerun`, with `latency_ms`, `tokens_in`, `tokens_out`, `cost_usd`, `error`).
+- `judgment`: `run_id`, `winner` (label, `tie`, `none`), `scores` per label (`score`, `verdict`, `tags`), `note`, `expected`. Newest per run wins.
+- Older `eval`, `score` and `grade` lines are still read and mapped to v1.
 
 ## Setup
 
@@ -105,6 +112,8 @@ tests/
   test_hermes_load.py       loads each plugin with Hermes's real PluginManager
   test_quick_eval.py        quick-eval behavior, with fake models, UI, and config
   test_quick_eval_e2e.py    quick-eval inside real Hermes, against a fake model server
+  test_quick_eval_web.py    log schema, legacy lines, reports, HTTP routes
+  test_quick_eval_web_browser.py  the UI in Chromium (`uv run --with playwright pytest`)
 scripts/link-plugins.sh
 ```
 
@@ -114,7 +123,7 @@ Every folder in `plugins/` with a `plugin.yaml` is picked up automatically.
 
 - **Contract tests** load the plugin with a `FakeCtx` that records each registration. They check that `provides_tools` and `provides_hooks` match what `register()` actually adds, that each tool schema is valid JSON Schema with a description, that handlers return a JSON string even when called with no arguments, and that hooks tolerate payload fields they don't know about.
 - **Real-loader test** symlinks the plugin into a temporary `HERMES_HOME`, enables it, and runs Hermes's own `PluginManager` in a subprocess. It fails if Hermes can't discover the plugin, if `register()` raises, or if the registered tools and hooks differ from the manifest.
-- **Plugin tests** cover one plugin's behavior. The quick-eval end-to-end test starts a fake OpenAI-compatible server, registers it as a Hermes provider, and runs `/eval` and `/score` through Hermes's real plugin and LLM code, so it proves requests are routed to the right endpoint.
+- **Plugin tests** cover one plugin's behavior. The quick-eval end-to-end test starts a fake OpenAI-compatible server, registers it as a Hermes provider, and runs `/eval` and `/eval pick` through Hermes's real plugin and LLM code, so it proves requests are routed to the right endpoint.
 
 Tests marked `hermes` start real Hermes subprocesses. Skip them with `uv run pytest -m "not hermes"`.
 

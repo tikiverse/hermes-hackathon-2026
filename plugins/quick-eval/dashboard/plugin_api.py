@@ -1,4 +1,4 @@
-"""why: dashboard backend, mounted by Hermes at /api/plugins/quick-eval-ui/."""
+"""why: dashboard backend, mounted by Hermes at /api/plugins/quick-eval/."""
 import sys
 from pathlib import Path
 

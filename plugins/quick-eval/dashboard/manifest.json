@@ -1,7 +1,7 @@
 {
-  "name": "quick-eval-ui",
+  "name": "quick-eval",
   "label": "Quick Eval",
-  "description": "Grade live Hermes chats and quick-eval comparisons",
+  "description": "Review Hermes chats, compare models on the same prompt, leaderboard",
   "icon": "Zap",
   "version": "0.1.0",
   "tab": { "path": "/quick-eval", "position": "after:sessions" },

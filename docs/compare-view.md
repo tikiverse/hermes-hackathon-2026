@@ -1,8 +1,8 @@
-# Compare view + eval log schema (proposal)
+# Compare view + eval log schema (built, PR #2)
 
 Goal: one prompt, N models, judge fast, see which model wins over many prompts.
 
-## Problem today
+## Problem it fixed
 | Issue | Effect |
 |---|---|
 | 3 line types from 2 tools: `eval`, `score` (quick-eval), `grade` (UI) | 2 ways to judge; UI must stitch them |
@@ -40,7 +40,7 @@ Every line: `v`, `type`, `id`, `ts`. Never rewrite; newest line wins.
 ## Who writes what
 | Writer | Lines |
 |---|---|
-| `/eval` (plugin) | `run` (with `message_id`, tokens, cost when the provider returns them) |
+| `/eval` (plugin) | `run` (with `session_id`, `turn_id`, tokens, cost when the provider returns them) |
 | `/eval` picker, `/eval pick B` | `judgment` |
 | UI | `judgment` only; reads both |
 
@@ -58,7 +58,7 @@ Every line: `v`, `type`, `id`, `ts`. Never rewrite; newest line wins.
 │ Winner: (A) (B) (C) (Tie) (None)   note…            Save & next ⌘↵    │
 └────────────────────────────────────────────────────────────────────────┘
 ```
-- Columns equal width; 4+ models scroll sideways inside the grid only. Phone: one column at a time, swipe.
+- Columns equal width, max 4 per row; more wrap. Phone: columns stack.
 - Keys: `a`/`b`/`c` winner, `←`/`→` focus column, `1`-`5` score focused column, `⌘↵` save + next unjudged.
 - **Blind mode**: hide model names until saved (less bias; good demo beat).
 - Review tab: a turn with a run shows a "Compare (3)" link to this view instead of the squeezed split.
@@ -68,8 +68,9 @@ Every line: `v`, `type`, `id`, `ts`. Never rewrite; newest line wins.
 |---|---|---|---|---|---|---|---|
 Filter by time / suite / session.
 
-## Build order
-1. Store: append-only writer + v1 reader (maps old lines). Tests.
-2. Compare tab + keys + blind mode.
-3. Leaderboard tab.
-4. Plugin: `/eval` writes v1 `run` (+ `message_id`, tokens, cost) and picker writes `judgment`. Needs collaborator OK.
+## Status
+All built in PR #2: append-only log + v1 reader (`quickeval_log.py`, `quickeval_schema.py`), Compare, Leaderboard,
+`/eval` writes v1 + inline winner picker, `/eval pick`.
+
+Gap: Hermes's `post_llm_call` hook has no state.db message id, so `/eval` runs link to chat turns by
+`session_id` + prompt text (`quickeval_reports.turn_run`). UI-made runs carry `message_id`.

@@ -26,13 +26,3 @@ def state_db_path():
 def sql(name):
     return (HERE / "sql" / f"{name}.sql").read_text(encoding="utf-8")
 
-
-def dotenv_value(name):
-    env = hermes_home() / ".env"
-    lines = env.read_text(encoding="utf-8", errors="ignore").splitlines() if env.exists() else []
-    hits = [line.split("=", 1)[1] for line in lines if line.strip().startswith(name + "=")]
-    return hits[0].strip().strip("'\"") if hits else None
-
-
-def read_key(name):
-    return os.environ.get(name) or dotenv_value(name)

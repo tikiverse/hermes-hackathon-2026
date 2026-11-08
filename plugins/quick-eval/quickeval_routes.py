@@ -1,7 +1,6 @@
 """why: one dispatcher serves both the Hermes dashboard router and the standalone server."""
-import quickeval_compare as compare
+import quickeval_reports as reports
 import quickeval_sessions as sessions
-import quickeval_store as store
 
 
 def get_sessions(parts, query, _body):
@@ -16,50 +15,32 @@ def get_latest(_parts, _query, _body):
     return {"latest": sessions.latest_session()}
 
 
-def get_evals(_parts, query, _body):
-    return {"evals": store.list_evals(query.get("session_id", "")), "stats": store.stats()}
+def get_runs(_parts, query, _body):
+    return {"runs": reports.list_runs(query)}
 
 
-def post_eval(_parts, _query, body):
-    return store.create_eval(body)
+def post_judgment(_parts, _query, body):
+    return reports.save_judgment(body)
 
 
-def put_eval(parts, _query, body):
-    return store.update_eval(parts[1], body)
+def get_stats(_parts, _query, _body):
+    return reports.stats()
 
 
-def delete_eval(parts, _query, _body):
-    store.delete_eval(parts[1])
-    return {"ok": True}
+def get_leaderboard(_parts, query, _body):
+    return {"rows": reports.leaderboard(query)}
 
 
 def get_export(_parts, _query, _body):
-    return ("text", store.export_jsonl())
-
-
-def get_presets(_parts, _query, _body):
-    return {"presets": compare.presets()}
-
-
-def post_compare(_parts, _query, body):
-    return compare.compare(body)
-
-
-def get_runs(_parts, query, _body):
-    return {"runs": store.list_runs(query.get("session_id", ""))}
-
-
-def post_score(_parts, _query, body):
-    return store.add_score(body)
+    return ("text", reports.log().raw())
 
 
 ROUTES = {
-    ("GET", "sessions"): get_sessions, ("GET", "latest"): get_latest, ("GET", "evals"): get_evals,
-    ("POST", "evals"): post_eval, ("PUT", "evals"): put_eval, ("DELETE", "evals"): delete_eval,
-    ("GET", "export"): get_export, ("GET", "presets"): get_presets, ("POST", "compare"): post_compare,
-    ("GET", "runs"): get_runs, ("POST", "scores"): post_score,
+    ("GET", "sessions"): get_sessions, ("GET", "latest"): get_latest, ("GET", "runs"): get_runs,
+    ("POST", "judgments"): post_judgment, ("GET", "stats"): get_stats, ("GET", "leaderboard"): get_leaderboard,
+    ("GET", "export"): get_export,
 }
-STATUS = ((KeyError, 404), (ValueError, 400), (TypeError, 400), (FileNotFoundError, 500), (RuntimeError, 502))
+STATUS = ((KeyError, 404), (ValueError, 400), (TypeError, 400), (FileNotFoundError, 500))
 HANDLED = tuple(kind for kind, _ in STATUS)
 
 

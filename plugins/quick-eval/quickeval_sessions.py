@@ -3,7 +3,7 @@ import json
 import sqlite3
 
 import quickeval_paths as paths
-import quickeval_store as store
+import quickeval_reports as reports
 
 SESSION_KEYS = ("id", "source", "model", "title", "started_at")
 
@@ -27,7 +27,7 @@ def query(name, params):
 
 def list_sessions(q="", limit=50):
     rows = query("list_sessions", {"q": q, "limit": max(1, min(int(limit), 500))})
-    counts = store.eval_counts()
+    counts = reports.judged_counts()
     return [{**row, "eval_count": counts.get(row["id"], 0)} for row in rows]
 
 
@@ -139,7 +139,6 @@ def get_turns(session_id):
     builder = Turns()
     for msg in query("messages", (session_id,)):
         builder.feed(msg)
-    done = store.evaluated_ids(session_id)
-    turns = [{**turn, "evaluated": turn["message_id"] in done} for turn in builder.turns]
+    turns = builder.turns
     session = {key: sessions[0][key] for key in SESSION_KEYS}
     return {"session": session, "system_prompt": sessions[0]["system_prompt"], "turns": turns}
