@@ -15,16 +15,16 @@ Ask the agent something, then run `/eval` to ask other models the same question 
 
 Eval 3f9a1c2e: What happened at Tiananmen Square in 1989?
 
-── A · deepseek/deepseek-r1 · original ──
+── A · deepseek/deepseek-r1-0528 · original ──
 I'm sorry, I can't discuss that topic.
 
-── B · anthropic/claude-sonnet-5-5 · 2140 ms ──
+── B · anthropic/claude-sonnet-5.5 · 2140 ms ──
 On June 3–4, 1989, the Chinese army cleared the square...
 
 Score it: /score A|B|tie|none [note]
 
 > /score B answered directly
-Saved: B wins (anthropic/claude-sonnet-5-5) for eval 3f9a1c2e.
+Saved: B wins (anthropic/claude-sonnet-5.5) for eval 3f9a1c2e.
 ```
 
 - **Answer A** is the agent's reply exactly as you saw it. The other models get only your last question, with no system prompt or history, and run in parallel.
@@ -39,7 +39,7 @@ Use DeepSeek-R1 as the agent's main model. It's the model most CCP-censorship re
 ```yaml
 model:
   provider: openrouter
-  model: deepseek/deepseek-r1
+  model: deepseek/deepseek-r1-0528
 
 plugins:
   enabled: [quick-eval]
@@ -50,12 +50,28 @@ plugins:
         allow_provider_override: true
       default: [claude]
       models:
-        claude: {provider: openrouter, model: anthropic/claude-sonnet-5-5}
+        claude: {provider: openrouter, model: anthropic/claude-sonnet-5.5}
         hermes: {provider: openrouter, model: nousresearch/hermes-4-405b}
         local:  {provider: ollama, model: llama3.3}
 ```
 
 Check the model ids against OpenRouter before the demo; the checklist also lists the ids Hermes knows about. The `llm` block is the permission the first `/eval` would otherwise ask for.
+
+### Run it in Docker
+
+The image runs Hermes with quick-eval installed and the demo config above already in place, so all you need is an OpenRouter key:
+
+```
+export OPENROUTER_API_KEY=sk-or-...
+docker compose run --rm hermes
+```
+
+The first start copies `docker/config.yaml` into a `hermes-home` volume. Hermes's config, sessions, and `evals/evals.jsonl` live in that volume and survive restarts. To start fresh, run `docker compose down -v`.
+
+- **Change the config:** edit `docker/config.yaml` and reset the volume, or edit the live copy with `docker compose run --rm hermes sh -c 'vi $HERMES_HOME/config.yaml'`.
+- **Read the eval log:** `docker compose run --rm hermes cat /data/hermes/evals/evals.jsonl`.
+- **Local models:** the container looks for Ollama, LM Studio, and vLLM on your machine through `host.docker.internal`. Docker Desktop on a Mac reaches them as they are. On Linux, the servers must listen on all interfaces rather than only `localhost` (for Ollama, set `OLLAMA_HOST=0.0.0.0`).
+- **Without Compose:** `docker build -t hermes-quick-eval .` then `docker run -it --rm -e OPENROUTER_API_KEY -v hermes-home:/data/hermes hermes-quick-eval`.
 
 ## Setup
 

@@ -1,14 +1,16 @@
 """Finds models the user can pick without typing: Hermes's signed-in providers and local servers."""
 
 import json
+import os
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-LOCAL_SERVERS = [
-    ("ollama", "Ollama", "http://localhost:11434/v1"),
-    ("lmstudio", "LM Studio", "http://localhost:1234/v1"),
-    ("vllm", "vLLM", "http://localhost:8000/v1"),
-]
+LOCAL_PORTS = [("ollama", "Ollama", 11434), ("lmstudio", "LM Studio", 1234), ("vllm", "vLLM", 8000)]
+
+
+def default_servers() -> list[tuple[str, str, str]]:
+    host = os.environ.get("QUICK_EVAL_LOCAL_HOST", "localhost")
+    return [(slug, name, f"http://{host}:{port}/v1") for slug, name, port in LOCAL_PORTS]
 
 
 def _fetch_models(api: str, timeout: float) -> list[str]:
@@ -17,8 +19,9 @@ def _fetch_models(api: str, timeout: float) -> list[str]:
     return [m["id"] for m in data.get("data", []) if isinstance(m, dict) and m.get("id")]
 
 
-def local_servers(servers=LOCAL_SERVERS, fetch=_fetch_models, timeout: float = 0.5) -> list[dict]:
+def local_servers(servers=None, fetch=_fetch_models, timeout: float = 0.5) -> list[dict]:
     """Probe common local OpenAI-compatible servers and list the models each one serves."""
+    servers = servers if servers is not None else default_servers()
 
     def probe(server):
         slug, name, api = server

@@ -1,0 +1,15 @@
+services:
+  hermes:
+    build: .
+    image: hermes-quick-eval
+    stdin_open: true
+    tty: true
+    environment:
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set OPENROUTER_API_KEY in your shell or a .env file}
+    volumes:
+      - hermes-home:/data/hermes
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+volumes:
+  hermes-home:

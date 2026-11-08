@@ -359,20 +359,22 @@ wheels = [
 name = "hermes-hackathon-2026"
 version = "0.1.0"
 source = { virtual = "." }
+dependencies = [
+    { name = "hermes-agent" },
+]
 
 [package.dev-dependencies]
 dev = [
-    { name = "hermes-agent" },
     { name = "jsonschema" },
     { name = "pytest" },
     { name = "pyyaml" },
 ]
 
 [package.metadata]
+requires-dist = [{ name = "hermes-agent", specifier = ">=0.19" }]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "hermes-agent", specifier = ">=0.19" },
     { name = "jsonschema", specifier = ">=4" },
     { name = "pytest", specifier = ">=8" },
     { name = "pyyaml", specifier = ">=6" },

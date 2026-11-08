@@ -282,6 +282,12 @@ def test_local_server_probe(load):
     assert found == [{"slug": "ollama", "name": "Ollama", "api": "http://localhost:11434/v1", "models": ["llama3.3", "qwen3"]}]
 
 
+def test_local_server_host_override(load, monkeypatch):
+    discover = load("quick-eval").module.discover
+    monkeypatch.setenv("QUICK_EVAL_LOCAL_HOST", "host.docker.internal")
+    assert discover.default_servers()[0] == ("ollama", "Ollama", "http://host.docker.internal:11434/v1")
+
+
 def test_file_link_is_clickable(load, tmp_path):
     ui = load("quick-eval").module.ui
     link = ui.file_link(tmp_path / "config.yaml")
