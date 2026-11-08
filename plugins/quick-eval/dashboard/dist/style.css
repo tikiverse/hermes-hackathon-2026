@@ -23,7 +23,7 @@
   line-height: 1.55;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 140px);
+  height: calc(100dvh - 140px);
   min-height: 520px;
 }
 @media (prefers-color-scheme: light) {
@@ -35,7 +35,7 @@
 }
 @media (pointer: coarse) { .quickeval { --ep-tap: 44px; } }
 .quickeval-standalone { margin: 0; background-color: #0d0f12; font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif; }
-.quickeval-standalone .quickeval { height: 100vh; background-color: var(--ep-bg); }
+.quickeval-standalone .quickeval { height: 100dvh; background-color: var(--ep-bg); }
 .quickeval * { box-sizing: border-box; }
 .quickeval button, .quickeval input, .quickeval select, .quickeval textarea { font: inherit; color: inherit; }
 .quickeval button { cursor: pointer; }
@@ -153,12 +153,12 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
 
 /* why: phone: one column. The rail becomes a full-screen picker behind a header button. Bar: choices row, then note + save. */
 @media (max-width: 820px) {
-  .quickeval { height: 100dvh; min-height: 0; }
+  .quickeval { min-height: 0; }
   .ep-head { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
-  .ep-meta, .ep-wide, .quickeval kbd { display: none; }
+  .ep-brand, .ep-meta, .ep-wide, .quickeval kbd { display: none; }
   .ep-head > .ep-grow { display: none; }
   .ep-tabs { flex: 1; min-width: 0; }
-  .ep-tabs .ep-segb { flex: 1 1 auto; min-width: 0; padding: 0 6px; white-space: nowrap; }
+  .ep-tabs .ep-segb { flex: 1 1 auto; min-width: 0; white-space: nowrap; }
   .ep-railbtn { display: flex; flex-basis: 100%; min-width: 0; max-width: 100%; justify-content: space-between; min-height: 44px; text-align: left; }
   .ep-railbtn-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .ep-chev { color: var(--ep-muted); transition-property: rotate; transition-duration: var(--ep-t); }
@@ -178,7 +178,7 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
   .ep-bar .ep-seg .ep-segb { flex: 1; min-height: 44px; padding: 0 4px; }
   .ep-bar .ep-btn.pri { min-height: 44px; }
   .ep-note { min-width: 0; flex: 1; }
-  .ep-input { font-size: 16px; min-height: 44px; }
+  .quickeval .ep-input { font-size: 16px; min-height: 44px; }
   .ep-segb { min-height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) { .quickeval * { transition: none !important; } }

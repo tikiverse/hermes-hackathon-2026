@@ -1,0 +1,5 @@
+[
+  {"name": "desktop", "width": 1440, "height": 900},
+  {"name": "phone", "width": 390, "height": 844, "touch": true},
+  {"name": "phone-small", "width": 320, "height": 568, "touch": true}
+]
