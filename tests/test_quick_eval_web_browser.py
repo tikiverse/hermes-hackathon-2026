@@ -121,3 +121,13 @@ def test_no_null_text_anywhere(page):
         page.click(f".ep-head .ep-segb:has-text('{tab}')")
         page.wait_for_timeout(300)
         assert "null" not in page.inner_text(".quickeval")
+
+
+def test_phone_picker_opens_and_closes(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    assert not page.is_visible(".ep-rail")
+    page.click(".ep-railbtn")
+    page.click(".ep-rail-list .ep-item:has-text('Older chat')")
+    page.wait_for_selector(".ep-railbtn:has-text('Older chat')")
+    assert not page.is_visible(".ep-rail")
+    assert page.evaluate("document.documentElement.scrollWidth") <= 390

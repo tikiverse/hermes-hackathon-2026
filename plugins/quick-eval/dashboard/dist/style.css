@@ -45,6 +45,7 @@
 .ep-brand { font-weight: 650; white-space: nowrap; }
 .ep-grow { flex: 1; }
 .ep-meta { color: var(--ep-muted); font: 12px var(--ep-mono); white-space: nowrap; }
+.ep-railbtn { display: none; }
 
 /* why: shared controls */
 .ep-btn { min-height: var(--ep-tap); display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; background-color: var(--ep-panel); border: 1px solid var(--ep-line); border-radius: var(--ep-r-sm); color: var(--ep-fg); text-decoration: none; white-space: nowrap; transition-property: border-color, scale; transition-duration: var(--ep-t); }
@@ -150,21 +151,34 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
 .ep-toast { position: fixed; bottom: 84px; left: 50%; transform: translate(-50%, 12px); background-color: var(--ep-panel); border: 1px solid var(--ep-accent); border-radius: 999px; padding: 7px 18px; opacity: 0; transition-property: opacity, transform; transition-duration: var(--ep-t); pointer-events: none; z-index: 50; }
 .ep-toast.on { opacity: 1; transform: translate(-50%, 0); }
 
-/* why: phone: rail stacks above the stage (capped height), columns stack, inputs 16px to stop iOS zoom */
+/* why: phone: one column. The rail becomes a full-screen picker behind a header button; bar is 2 rows. */
 @media (max-width: 820px) {
-  .quickeval { height: 100vh; min-height: 0; }
+  .quickeval { height: 100dvh; min-height: 0; }
   .ep-head { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
   .ep-meta, .ep-wide, .quickeval kbd { display: none; }
-  .ep-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
-  .ep-rail { max-height: 34vh; border-right: 0; border-bottom: 1px solid var(--ep-line); }
-  .ep-stage { padding: 14px 16px 20px; }
-  .ep-now { margin: 0; }
+  .ep-tabs { flex: 1; }
+  .ep-tabs .ep-segb { flex: 1; padding: 0 8px; }
+  .ep-railbtn { display: flex; flex-basis: 100%; justify-content: space-between; min-height: 44px; text-align: left; }
+  .ep-railbtn-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .ep-chev { color: var(--ep-muted); transition-property: rotate; transition-duration: var(--ep-t); }
+  .ep-head.rail-open .ep-chev { rotate: 180deg; }
+  .ep-body { grid-template-columns: minmax(0, 1fr); position: relative; }
+  .ep-rail { display: none; }
+  .ep-body.rail-open .ep-rail { display: flex; position: absolute; inset: 0; z-index: 20; background-color: var(--ep-bg); border-right: 0; }
+  .ep-item { min-height: 52px; justify-content: center; }
+  .ep-stage { padding: 14px 12px 20px; }
+  .ep-now { margin: 0; padding: 10px; }
   .ep-msg { max-width: 94%; }
   .ep-cgrid { grid-template-columns: minmax(0, 1fr); }
-  .ep-bar { padding: 10px 12px; }
+  .ep-bar { padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }
+  .ep-bar-in { gap: 8px; }
+  .ep-bar .ep-meta { display: none; }
+  .ep-bar .ep-seg { flex: 1; }
+  .ep-bar .ep-seg .ep-segb { flex: 1; min-height: 44px; }
+  .ep-bar .ep-btn.pri { min-height: 44px; }
   .ep-note { min-width: 100%; order: 5; }
-  .ep-input { font-size: 16px; }
-  .ep-bar .ep-btn.pri { order: 6; flex: 1; }
+  .ep-input { font-size: 16px; min-height: 44px; }
+  .ep-segb { min-height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) { .quickeval * { transition: none !important; } }
 /* why: tactile press feedback; after hover rules so :active wins */

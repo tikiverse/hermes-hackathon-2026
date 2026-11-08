@@ -16,7 +16,8 @@ import quickeval_routes as routes  # noqa: E402
 DIST = HERE / "dashboard" / "dist"
 CTYPES = {".css": "text/css", ".js": "application/javascript"}
 PAGE = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Quick Eval</title><link rel="stylesheet" href="/dist/style.css"></head>
 <body class="quickeval-standalone"><div id="root"></div>
 <script src="/dist/index.js"></script>

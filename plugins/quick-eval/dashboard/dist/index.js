@@ -125,8 +125,33 @@ function tabButton(t) {
 function renderHead() {
   const meta = `${pick(EP.stats.judged, 0)}/${pick(EP.stats.runs, 0)} judged`
   fill(EP.els.head, h("span", { class: "ep-brand", text: "Quick Eval" }), grow(), h("span", { class: "ep-meta", text: meta }),
-    h("div", { class: "ep-seg" }, Object.keys(TABS).map(tabButton)),
-    h("a", { class: "ep-btn ep-wide", href: EP.api + "/export", download: "evals.jsonl", text: "Export JSONL" }))
+    h("div", { class: "ep-seg ep-tabs" }, Object.keys(TABS).map(tabButton)),
+    h("a", { class: "ep-btn ep-wide", href: EP.api + "/export", download: "evals.jsonl", text: "Export JSONL" }), railButton())
+}
+
+/* why: on a phone the rail is a full-screen picker opened from this button; on desktop the button is hidden */
+const RAIL_LABELS = { review: currentChatLabel, compare: currentRunLabel }
+
+function currentChatLabel() {
+  const s = EP.sessions.find(sameId.bind(null, EP.sessionId))
+  return (EP.live ? "Current chat · " : "") + (s ? sessionTitle(s) : "Pick a chat")
+}
+
+function currentRunLabel() {
+  const n = shownRuns().length
+  return n ? `Run ${EP.cmp.sel + 1} of ${n} · ${clip(oneLine(cmpRun().prompt), RAIL_CHARS)}` : "No runs yet"
+}
+
+function railButton() {
+  const label = RAIL_LABELS[EP.tab]
+  if (!label) return null
+  return h("button", { class: "ep-btn ep-railbtn", onclick: toggleRail, "aria-label": "Show list" },
+    h("span", { class: "ep-railbtn-t", text: label() }), h("span", { class: "ep-chev", text: "▾" }))
+}
+
+function toggleRail() {
+  const open = EP.els.body.classList.toggle("rail-open")
+  EP.els.head.classList.toggle("rail-open", open)
 }
 
 function setRange(key) { EP.range = key; filtersChanged() }
@@ -506,6 +531,7 @@ const RENDERERS = { review: renderReview, compare: renderCompare, board: renderB
 
 function render() {
   renderHead()
+  EP.els.head.classList.remove("rail-open")
   EP.els.body.className = "ep-body tab-" + EP.tab
   RENDERERS[EP.tab]()
 }
