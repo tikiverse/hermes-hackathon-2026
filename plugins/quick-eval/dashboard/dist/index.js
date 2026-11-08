@@ -200,17 +200,19 @@ async function openSession(id, live) {
   select(EP.turns.length - 1)
 }
 
+function shortModel(m) { return pick(m, "?").split("/").pop() }
+
 function sessionSub(s) {
-  const parts = [pick(s.model, "?"), ago(sessionTime(s))]
-  if (s.eval_count) parts.push(s.eval_count + " judged")
-  return parts.join(" · ")
+  const parts = [ago(sessionTime(s)), shortModel(s.model)]
+  if (s.eval_count) parts.unshift(s.eval_count + " judged")
+  return clip(parts.join(" · "), RAIL_CHARS + 4)
 }
 
-function sessionTitle(s) { return clip(oneLine(pick(s.title, s.id)), RAIL_CHARS) }
+function sessionTitle(s) { return clip(oneLine(pick(s.title, "Untitled chat")), RAIL_CHARS) }
 
 function sessionButton(s, label) {
   const live = label ? h("span", { class: "ep-livedot", title: "follows your newest Hermes chat" }) : null
-  return h("button", { class: "ep-item" + onClass(s.id === EP.sessionId), title: pick(s.title, s.id),
+  return h("button", { class: "ep-item" + onClass(s.id === EP.sessionId), title: [s.title, s.model, s.id].join("\n"),
     onclick: openSession.bind(null, s.id, !!label) }, h("span", { class: "ep-item-t" }, live, pick(label, sessionTitle(s))),
   h("span", { class: "ep-item-s", text: label ? sessionTitle(s) : sessionSub(s) }))
 }
