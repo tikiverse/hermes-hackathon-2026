@@ -1,4 +1,0 @@
-name: quick-eval
-version: "0.1.0"
-description: Create evals from a live Hermes conversation. One-keystroke scoring, pretty JSON turns, side-by-side model comparison, JSONL on disk.
-author: tikiverse

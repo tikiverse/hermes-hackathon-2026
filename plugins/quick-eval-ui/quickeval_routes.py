@@ -45,10 +45,19 @@ def post_compare(_parts, _query, body):
     return compare.compare(body)
 
 
+def get_runs(_parts, query, _body):
+    return {"runs": store.list_runs(query.get("session_id", ""))}
+
+
+def post_score(_parts, _query, body):
+    return store.add_score(body)
+
+
 ROUTES = {
     ("GET", "sessions"): get_sessions, ("GET", "latest"): get_latest, ("GET", "evals"): get_evals,
     ("POST", "evals"): post_eval, ("PUT", "evals"): put_eval, ("DELETE", "evals"): delete_eval,
     ("GET", "export"): get_export, ("GET", "presets"): get_presets, ("POST", "compare"): post_compare,
+    ("GET", "runs"): get_runs, ("POST", "scores"): post_score,
 }
 STATUS = ((KeyError, 404), (ValueError, 400), (TypeError, 400), (FileNotFoundError, 500), (RuntimeError, 502))
 HANDLED = tuple(kind for kind, _ in STATUS)

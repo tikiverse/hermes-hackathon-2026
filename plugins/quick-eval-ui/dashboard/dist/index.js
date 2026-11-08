@@ -15,7 +15,7 @@ function freshState() {
   return {
     root: null, api: "", fetchJSON: null, els: {}, sessions: [], sessionId: null, session: null, turns: [], sel: 0,
     evals: {}, stats: {}, presets: [], preset: "", customModel: "", live: true, view: "chat", tab: "review",
-    compare: false, draft: null, dirty: false, toast: "", busy: "", saved: [], lastMsgCount: 0, toastTimer: null,
+    compare: false, runs: [], draft: null, dirty: false, toast: "", busy: "", saved: [], lastMsgCount: 0, toastTimer: null,
     pollTimer: null,
   }
 }
@@ -159,6 +159,8 @@ function messageCountOf(id) {
   return s ? s.message_count : 0
 }
 
+async function loadRuns() { EP.runs = (await call(`/runs?session_id=${encodeURIComponent(EP.sessionId)}`)).runs }
+
 async function openSession(id, selectLast) {
   EP.sessionId = id
   const r = await call(`/sessions/${encodeURIComponent(id)}/turns`)
@@ -166,8 +168,19 @@ async function openSession(id, selectLast) {
   EP.turns = r.turns
   EP.lastMsgCount = messageCountOf(id)
   await loadEvals()
+  await loadRuns()
   select(selectLast ? EP.turns.length - 1 : EP.sel)
 }
+
+function samePrompt(t, run) { return (run.prompt || "").trim() === (t.prompt || "").trim() }
+
+function runFor(t) {
+  const runs = EP.runs.filter(samePrompt.bind(null, t))
+  return runs[runs.length - 1] || null
+}
+
+function turnRun() { const t = turn(); return t ? runFor(t) : null }
+function runWinner(run) { return run && run.score ? run.score.winner : null }
 
 function emptyDraft() { return { verdict: null, score: null, tags: [], notes: "", expected: "", comparisons: [] } }
 
@@ -186,6 +199,8 @@ function select(i) {
   const t = turn()
   const ex = t && EP.evals[t.message_id]
   EP.draft = ex ? draftFrom(ex) : emptyDraft()
+  EP.draft.winner = runWinner(turnRun())
+  EP.compare = !!turnRun()
   EP.dirty = false
   render()
 }
@@ -211,13 +226,23 @@ function evalBody(t) {
   }
 }
 
+async function saveWinner() {
+  const run = turnRun()
+  const winner = EP.draft.winner
+  if (!run || !winner || winner === runWinner(run)) return
+  await send("POST", "/scores", { eval_id: run.id, winner, note: EP.draft.notes })
+  await loadRuns()
+}
+
 async function persist(t) {
+  const winner = EP.draft.winner
   const saved = await send("POST", "/evals", evalBody(t))
   EP.evals[t.message_id] = saved
   t.evaluated = true
+  await saveWinner()
   EP.dirty = false
   await loadEvals()
-  toast("Saved ✓")
+  toast(winner ? `Saved ✓ · winner ${winner}` : "Saved ✓")
 }
 
 function afterSave(advance) {
@@ -411,12 +436,45 @@ function presetSelect() {
 function pickerCol() {
   const model = h("input", { class: "ep-input", placeholder: "or any model id", value: EP.customModel, oninput: onCustomModel })
   const run = h("button", { class: "ep-btn pri", disabled: !!EP.busy, onclick: runCompare }, EP.busy ? "Running…" : "Run")
+  const hint = h("p", { class: "ep-hint", text: "Or type /eval in Hermes: your quick-eval models answer and show up here." })
   return h("div", { class: "ep-col ep-picker" }, h("div", { class: "ep-col-h" }, h("b", { text: "Same prompt, other model" })),
-    h("div", { class: "ep-col-b" }, presetSelect(), model, run))
+    h("div", { class: "ep-col-b" }, presetSelect(), model, run, hint))
+}
+
+function setWinner(label) {
+  EP.draft.winner = label
+  EP.dirty = true
+  renderStageInto()
+  renderBarInto()
+}
+
+function winnerEl(label, text) {
+  return h("label", { class: "ep-pref" }, h("input", { type: "radio", name: "ep-win", checked: EP.draft.winner === label,
+    onchange: setWinner.bind(null, label) }), text)
+}
+
+function labelChip(label) { return h("span", { class: "ep-label", text: label }) }
+function isRerun(a) { return a.source !== "original" }
+function answerText(a) { return a.error ? "⚠ " + a.error : a.text }
+
+function answerCol(a) {
+  return colEl([labelChip(a.label), h("b", { text: pick(a.model, a.alias) }), `${a.latency_ms} ms`], answerText(a),
+    winnerEl(a.label, "Winner"))
+}
+
+function runCols(t, run) {
+  const original = colEl([labelChip("A"), h("b", { text: modelName() }), "original"], t.response, winnerEl("A", "Winner"))
+  return [original, run.answers.filter(isRerun).map(answerCol)]
+}
+
+function tieRow() {
+  return h("div", { class: "ep-tie" }, "Neither?", winnerEl("tie", "Tie"), winnerEl("none", "No good answer"))
 }
 
 function splitEl(t) {
-  return h("div", { class: "ep-split" }, originalCol(t), EP.draft.comparisons.map(compareCol), pickerCol())
+  const run = runFor(t)
+  const cols = run ? runCols(t, run) : originalCol(t)
+  return [h("div", { class: "ep-split" }, cols, EP.draft.comparisons.map(compareCol), pickerCol()), run ? tieRow() : null]
 }
 
 function replyEl(t) {
@@ -555,10 +613,17 @@ function onKey(e) {
 
 function shouldFollow(l) { return !!l && !EP.dirty && (l.id !== EP.sessionId || l.message_count !== EP.lastMsgCount) }
 
+async function refreshRuns() {
+  if (EP.dirty || !EP.sessionId) return
+  const before = EP.runs.length
+  await loadRuns()
+  if (EP.runs.length !== before) select(EP.sel)
+}
+
 async function pollOnce() {
   if (!EP.live || EP.tab !== "review") return
   const { latest } = await call("/latest")
-  if (!shouldFollow(latest)) return
+  if (!shouldFollow(latest)) return refreshRuns()
   await loadSessions()
   await openSession(latest.id, true)
 }
@@ -603,7 +668,7 @@ function mount(root, opts) {
 }
 
 function mountInto(ref, sdk) {
-  if (ref.current) mount(ref.current, { apiBase: "/api/plugins/quick-eval", fetchJSON: sdk.fetchJSON })
+  if (ref.current) mount(ref.current, { apiBase: "/api/plugins/quick-eval-ui", fetchJSON: sdk.fetchJSON })
 }
 
 function QuickEvalPage() {
@@ -615,7 +680,7 @@ function QuickEvalPage() {
 
 function registerDashboard() {
   if (!window.__HERMES_PLUGIN_SDK__ || !window.__HERMES_PLUGINS__) return
-  window.__HERMES_PLUGINS__.register("quick-eval", QuickEvalPage)
+  window.__HERMES_PLUGINS__.register("quick-eval-ui", QuickEvalPage)
 }
 
 window.QuickEvalUI = { mount }

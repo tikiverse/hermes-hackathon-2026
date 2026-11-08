@@ -1,0 +1,4 @@
+name: quick-eval-ui
+version: "0.1.0"
+description: Review live Hermes chats in a browser, grade each turn, and pick winners for quick-eval comparisons. /evals opens it.
+author: tikiverse

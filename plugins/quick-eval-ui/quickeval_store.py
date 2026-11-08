@@ -10,6 +10,13 @@ import quickeval_paths as paths
 
 LOCK = threading.Lock()
 EDITABLE = ("verdict", "score", "tags", "notes", "expected", "comparisons", "prompt", "response")
+GRADE = "grade"
+SCORE_WORDS = ("tie", "none")
+
+
+def is_grade(item):
+    """why: the file also holds quick-eval's `eval`/`score` lines; untyped lines are older grades."""
+    return item.get("type", GRADE) == GRADE
 
 
 def parse_line(line):
@@ -65,7 +72,7 @@ def clean(body):
 
 
 def new_item(body):
-    base = {"id": uuid.uuid4().hex[:12], "ts": time.time(), "session_id": body.get("session_id"),
+    base = {"type": GRADE, "id": uuid.uuid4().hex[:12], "ts": time.time(), "session_id": body.get("session_id"),
             "message_id": body.get("message_id"), "turn_index": body.get("turn_index"), "model": body.get("model"),
             "prompt": "", "response": "", "verdict": None, "score": None, "tags": [], "notes": "",
             "expected": "", "comparisons": []}
@@ -126,8 +133,43 @@ def ts_of(item):
 def list_evals(session_id=""):
     with LOCK:
         items = read_all()
-    kept = [item for item in items if not session_id or item.get("session_id") == session_id]
+    kept = [item for item in items if is_grade(item) and (not session_id or item.get("session_id") == session_id)]
     return sorted(kept, key=ts_of, reverse=True)
+
+
+def latest_scores(items):
+    """why: quick-eval appends a new `score` line per /score; the newest one wins."""
+    scores = sorted((item for item in items if item.get("type") == "score"), key=ts_of)
+    return {item.get("eval_id"): item for item in scores}
+
+
+def list_runs(session_id):
+    """why: quick-eval `/eval` runs for one session, each with its current score."""
+    with LOCK:
+        items = read_all()
+    scores = latest_scores(items)
+    runs = [item for item in items if item.get("type") == "eval" and item.get("session_id") == session_id]
+    return [{**run, "score": scores.get(run.get("id"))} for run in runs]
+
+
+def winner_model(run, winner):
+    match = next((a for a in run.get("answers", []) if a.get("label") == winner), None)
+    if match is None and winner not in SCORE_WORDS:
+        raise ValueError(f"unknown winner {winner!r}")
+    return match.get("model") if match else None
+
+
+def add_score(body):
+    """why: same line shape as quick-eval's /score, so both tools read one history."""
+    with LOCK:
+        items = read_all()
+        run = find(items, body.get("eval_id"))
+        winner = str(body.get("winner") or "")
+        record = {"type": "score", "eval_id": run["id"], "ts": time.time(), "winner": winner,
+                  "winner_model": winner_model(run, winner), "note": str(body.get("note") or "")}
+        with paths.evals_path().open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    return record
 
 
 def eval_counts():
@@ -139,7 +181,9 @@ def evaluated_ids(session_id):
 
 
 def export_jsonl():
-    return "".join(json.dumps(item, ensure_ascii=False) + "\n" for item in list_evals())
+    with LOCK:
+        items = read_all()
+    return "".join(json.dumps(item, ensure_ascii=False) + "\n" for item in items)
 
 
 def ratio(part, whole):

@@ -1,7 +1,7 @@
-"""Quick Eval: create evals from a live Hermes conversation in one keystroke.
+"""why: browser UI for Hermes chats + quick-eval runs; /evals grades the last turn or opens the UI.
 
-/eval [good|bad|1-5] [note]   record the last exchange
-/eval open                    open the Quick Eval UI
+/evals [good|bad|1-5] [note]  record the last exchange
+/evals open                   open the UI (compare runs come from /eval)
 """
 import sys
 import threading
@@ -62,7 +62,7 @@ def save_last(raw):
     store.create_eval({"session_id": session["id"], "message_id": turn["message_id"], "turn_index": turn["index"],
                        "model": session["model"], "prompt": turn["prompt"], "response": turn["response"],
                        "verdict": verdict, "score": score, "notes": note})
-    return f"Quick Eval: saved ({verdict or 'unrated'}). {store.stats()['total']} evals total. `/eval open` to review."
+    return f"Quick Eval: saved ({verdict or 'unrated'}). {store.stats()['total']} evals total. `/evals open` to review."
 
 
 def eval_command(raw_args=""):
@@ -76,5 +76,5 @@ def eval_command(raw_args=""):
 
 
 def register(ctx):
-    ctx.register_command("eval", eval_command, description="Record an eval for the last exchange, or `/eval open`",
+    ctx.register_command("evals", eval_command, description="Grade the last exchange, or `/evals open` for the UI",
                          args_hint="[good|bad|1-5] [note] | open")

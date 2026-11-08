@@ -7,7 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent / "plugins" / "quick-eval-ui"
+SEED = Path(__file__).resolve().parent / "quick_eval_ui_seed.sql"
 sys.path.insert(0, str(ROOT))
 
 import quickeval_compare  # noqa: E402
@@ -30,7 +31,7 @@ class CoreTests(unittest.TestCase):
         os.environ.update(QUICKEVAL_DIR=str(tmp / "evals"), QUICKEVAL_STATE_DB=str(tmp / "state.db"),
                           HERMES_HOME=str(tmp))
         conn = sqlite3.connect(tmp / "state.db")
-        conn.executescript((ROOT / "tests" / "seed.sql").read_text())
+        conn.executescript(SEED.read_text())
         conn.commit()
         conn.close()
 
@@ -100,6 +101,21 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(plugin.parse_args("just a note"), (None, None, "just a note"))
         self.assertIn("saved (pass)", plugin.eval_command("good great"))
         self.assertEqual(store.list_evals()[0]["response"], "Found 3 hits.")
+        self.assertEqual(store.list_evals()[0]["type"], "grade")
+
+    def test_quick_eval_runs_kept_apart_and_scored(self):
+        run = {"type": "eval", "id": "abc12345", "ts": 1, "session_id": "s1", "prompt": "hi",
+               "answers": [{"label": "A", "source": "original", "model": "m0", "text": "x"},
+                           {"label": "B", "source": "rerun", "model": "m1", "text": "y"}]}
+        store.paths.evals_path().write_text(json.dumps(run) + "\n")
+        routes.handle("POST", "/evals", {}, {"session_id": "s1", "message_id": 1, "prompt": "hi"})
+        self.assertEqual(store.stats()["total"], 1)
+        status, score = routes.handle("POST", "/scores", {}, {"eval_id": "abc12345", "winner": "B", "note": "ok"})
+        self.assertEqual((status, score["winner_model"]), (200, "m1"))
+        self.assertEqual(routes.handle("POST", "/scores", {}, {"eval_id": "abc12345", "winner": "Z"})[0], 400)
+        runs = routes.handle("GET", "/runs", {"session_id": "s1"}, None)[1]["runs"]
+        self.assertEqual(runs[0]["score"]["winner"], "B")
+        self.assertIn('"type": "eval"', store.export_jsonl())
 
 
 if __name__ == "__main__":

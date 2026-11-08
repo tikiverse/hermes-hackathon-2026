@@ -1,7 +1,7 @@
 {
-  "name": "quick-eval",
+  "name": "quick-eval-ui",
   "label": "Quick Eval",
-  "description": "Create evals from live Hermes conversations",
+  "description": "Grade live Hermes chats and quick-eval comparisons",
   "icon": "Zap",
   "version": "0.1.0",
   "tab": { "path": "/quick-eval", "position": "after:sessions" },
