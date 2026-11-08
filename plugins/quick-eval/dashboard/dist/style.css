@@ -151,13 +151,14 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
 .ep-toast { position: fixed; bottom: 84px; left: 50%; transform: translate(-50%, 12px); background-color: var(--ep-panel); border: 1px solid var(--ep-accent); border-radius: 999px; padding: 7px 18px; opacity: 0; transition-property: opacity, transform; transition-duration: var(--ep-t); pointer-events: none; z-index: 50; }
 .ep-toast.on { opacity: 1; transform: translate(-50%, 0); }
 
-/* why: phone: one column. The rail becomes a full-screen picker behind a header button; bar is 2 rows. */
+/* why: phone: one column. The rail becomes a full-screen picker behind a header button. Bar: choices row, then note + save. */
 @media (max-width: 820px) {
   .quickeval { height: 100dvh; min-height: 0; }
   .ep-head { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
   .ep-meta, .ep-wide, .quickeval kbd { display: none; }
-  .ep-tabs { flex: 1; }
-  .ep-tabs .ep-segb { flex: 1; padding: 0 8px; }
+  .ep-head > .ep-grow { display: none; }
+  .ep-tabs { flex: 1; min-width: 0; }
+  .ep-tabs .ep-segb { flex: 1 1 auto; min-width: 0; padding: 0 6px; white-space: nowrap; }
   .ep-railbtn { display: flex; flex-basis: 100%; justify-content: space-between; min-height: 44px; text-align: left; }
   .ep-railbtn-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .ep-chev { color: var(--ep-muted); transition-property: rotate; transition-duration: var(--ep-t); }
@@ -173,10 +174,10 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
   .ep-bar { padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }
   .ep-bar-in { gap: 8px; }
   .ep-bar .ep-meta { display: none; }
-  .ep-bar .ep-seg { flex: 1; }
-  .ep-bar .ep-seg .ep-segb { flex: 1; min-height: 44px; }
+  .ep-bar .ep-seg { flex: 1 1 100%; }
+  .ep-bar .ep-seg .ep-segb { flex: 1; min-height: 44px; padding: 0 4px; }
   .ep-bar .ep-btn.pri { min-height: 44px; }
-  .ep-note { min-width: 100%; order: 5; }
+  .ep-note { min-width: 0; flex: 1; }
   .ep-input { font-size: 16px; min-height: 44px; }
   .ep-segb { min-height: 44px; }
 }

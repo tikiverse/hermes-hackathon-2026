@@ -131,3 +131,15 @@ def test_phone_picker_opens_and_closes(page):
     page.wait_for_selector(".ep-railbtn:has-text('Older chat')")
     assert not page.is_visible(".ep-rail")
     assert page.evaluate("document.documentElement.scrollWidth") <= 390
+
+
+OVERFLOWING = ("[...document.querySelectorAll('.ep-head button, .ep-bar button, .ep-seg')]"
+               ".filter(b => b.scrollWidth > b.clientWidth + 1).length")
+
+
+def test_phone_controls_fit(page):
+    page.set_viewport_size({"width": 320, "height": 640})
+    for tab in ("Review", "Compare"):
+        page.click(f".ep-head .ep-segb:has-text('{tab}')")
+        page.wait_for_timeout(300)
+        assert page.evaluate(OVERFLOWING) == 0, tab
