@@ -3,6 +3,7 @@
 
 const TAGS = ["wrong", "hallucination", "refusal", "censored", "too-long", "great", "style"]
 const SCORES = [1, 2, 3, 4, 5]
+const RAIL_CHARS = 24 /* why: rail is 232px; a longer label gets cut mid-glyph by CSS */
 const TABS = { review: "Review", compare: "Compare", board: "Leaderboard" }
 const AGO_STEPS = [
   { lt: 3600, div: 60, suffix: "m ago" },
@@ -397,7 +398,7 @@ function turnDot(t) {
 }
 
 function turnButton(t, i) {
-  const prompt = pick(clip(oneLine(t.prompt), 70), "(empty)")
+  const prompt = pick(clip(oneLine(t.prompt), RAIL_CHARS), "(empty)")
   return h("button", { class: "ep-turn" + onClass(i === EP.sel), onclick: select.bind(null, i), title: prompt },
     h("b", { text: "#" + (i + 1) }), h("span", { text: prompt }), turnDot(t))
 }
@@ -583,7 +584,7 @@ function runButton(run, i) {
   const j = run.judgment
   const badge = j && j.winner ? h("span", { class: "ep-label", text: j.winner }) : h("i", { class: "ep-dot" })
   return h("button", { class: "ep-turn ep-runbtn" + onClass(i === EP.cmp.sel), onclick: cmpSelect.bind(null, i),
-    title: run.prompt }, h("b", { text: run.answers.length + "×" }), h("span", { text: clip(oneLine(run.prompt), 70) }), badge)
+    title: run.prompt }, h("b", { text: run.answers.length + "×" }), h("span", { text: clip(oneLine(run.prompt), RAIL_CHARS) }), badge)
 }
 
 function onUnjudged(e) { EP.cmp.unjudged = e.target.checked; cmpSelect(0); renderCount() }
