@@ -112,3 +112,10 @@ def test_blind_mode_hides_models_until_judged(page):
     page.wait_for_selector(".ep-cgrid .ep-col")
     page.check(".ep-toolbar .ep-live input")
     assert page.inner_text(".ep-cgrid .ep-col:nth-child(2) .ep-col-h b") == "Model B"
+
+
+def test_no_null_text_in_chrome(page):
+    for tab in ("Review", "Compare", "Leaderboard"):
+        page.click(f".ep-head .ep-segb:has-text('{tab}')")
+        page.wait_for_timeout(300)
+        assert "null" not in page.inner_text(".ep-head") + page.inner_text(".ep-filters")

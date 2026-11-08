@@ -59,6 +59,9 @@ function h(tag, props, ...kids) {
   return el
 }
 
+/* why: replaceChildren turns a null kid into the text "null"; optional parts return null */
+function fill(el, ...kids) { el.replaceChildren(...kids.filter(isKid)) }
+
 function findStep(s, step) { return s < step.lt }
 
 function ago(ts) {
@@ -354,7 +357,7 @@ function renderCount() {
 function renderFilters() {
   const search = h("input", { class: "ep-input ep-filter ep-search", type: "search", placeholder: "Search",
     "aria-label": "Search", value: EP.q, oninput: onSearch })
-  EP.els.filters.replaceChildren(h("div", { class: "ep-seg" }, Object.keys(RANGES).map(rangeButton)), modelFilter(),
+  fill(EP.els.filters, h("div", { class: "ep-seg" }, Object.keys(RANGES).map(rangeButton)), modelFilter(),
     EP.tab === "board" ? null : search, h("span", { class: "ep-meta ep-count", text: countText() }))
 }
 
@@ -386,7 +389,7 @@ function exportEl() {
 }
 
 function renderHead() {
-  EP.els.head.replaceChildren(h("span", { class: "ep-brand", text: "Quick Eval" }), sessionSelect(), liveEl(), grow(),
+  fill(EP.els.head, h("span", { class: "ep-brand", text: "Quick Eval" }), sessionSelect(), liveEl(), grow(),
     metaEl(), tabsEl(), exportEl())
 }
 
@@ -602,7 +605,7 @@ function colScoreButton(label, n) {
 }
 
 function answerMeta(a) {
-  if (a.role === "original") return "original"
+  if (a.role === "original") return "original · the reply you saw"
   return [secs(a.latency_ms), a.tokens_out ? a.tokens_out + " tok" : null, usd(a.cost_usd)].filter(Boolean).join(" · ")
 }
 
@@ -611,7 +614,7 @@ function answerCol(a, i) {
   const cls = "ep-col" + (won ? " won" : "") + (i === EP.cmp.focus ? " focus" : "")
   const body = a.error ? h("div", { class: "ep-col-b ep-text ep-err", text: "⚠ " + a.error }) : h("div", { class: "ep-col-b ep-text", text: pick(a.text, "(empty)") })
   return h("div", { class: cls }, h("div", { class: "ep-col-h" }, h("span", { class: "ep-label", text: a.label }),
-    h("b", { text: answerName(a) }), grow(), h("span", { text: answerMeta(a) })), body,
+    h("b", { text: answerName(a) }), h("span", { class: "ep-col-meta", text: answerMeta(a) })), body,
     h("div", { class: "ep-col-f" }, h("div", { class: "ep-seg" }, SCORES.map(colScoreButton.bind(null, a.label)))))
 }
 

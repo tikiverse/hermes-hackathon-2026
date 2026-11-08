@@ -145,7 +145,8 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
 .ep-table td { padding: 9px 10px; border-bottom: 1px solid var(--ep-line); white-space: nowrap; }
 .ep-table td:first-child { font-family: var(--ep-mono); white-space: normal; word-break: break-all; }
 .ep-col-h { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid var(--ep-line); font-size: 12px; color: var(--ep-muted); }
-.ep-col-h b { color: var(--ep-fg); font-size: 13px; }
+.ep-col-h b { color: var(--ep-fg); font-size: 13px; min-width: 0; overflow-wrap: anywhere; }
+.ep-col-meta { flex-basis: 100%; }
 .ep-col-b { flex: 1; padding: 12px; }
 .ep-col-f { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-top: 1px solid var(--ep-line); }
 .ep-label { font: 600 11px var(--ep-mono); color: var(--ep-accent); border: 1px solid var(--ep-accent); border-radius: 4px; padding: 0 5px; }
