@@ -1,4 +1,4 @@
-"""why: dashboard backend, mounted by Hermes at /api/plugins/evalpad/."""
+"""why: dashboard backend, mounted by Hermes at /api/plugins/quick-eval/."""
 import sys
 from pathlib import Path
 
@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from fastapi import APIRouter, Request  # noqa: E402
 from fastapi.responses import JSONResponse, PlainTextResponse  # noqa: E402
 
-import evalpad_routes as routes  # noqa: E402
+import quickeval_routes as routes  # noqa: E402
 
 router = APIRouter()
 
@@ -22,7 +22,7 @@ async def read_body(request):
 
 
 @router.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-async def evalpad(request: Request, path: str):
+async def quick_eval(request: Request, path: str):
     body = await read_body(request)
     status, payload = routes.handle(request.method, "/" + path, dict(request.query_params), body)
     if isinstance(payload, tuple):

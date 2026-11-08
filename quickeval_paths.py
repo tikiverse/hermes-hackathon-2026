@@ -10,7 +10,7 @@ def hermes_home():
 
 
 def evals_dir():
-    path = Path(os.environ.get("EVALPAD_DIR") or hermes_home() / "evals")
+    path = Path(os.environ.get("QUICKEVAL_DIR") or hermes_home() / "evals")
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -20,7 +20,7 @@ def evals_path():
 
 
 def state_db_path():
-    return Path(os.environ.get("EVALPAD_STATE_DB") or hermes_home() / "state.db")
+    return Path(os.environ.get("QUICKEVAL_STATE_DB") or hermes_home() / "state.db")
 
 
 def sql(name):

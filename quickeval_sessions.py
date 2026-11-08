@@ -2,8 +2,8 @@
 import json
 import sqlite3
 
-import evalpad_paths as paths
-import evalpad_store as store
+import quickeval_paths as paths
+import quickeval_store as store
 
 SESSION_KEYS = ("id", "source", "model", "title", "started_at")
 

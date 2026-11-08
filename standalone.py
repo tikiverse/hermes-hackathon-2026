@@ -11,16 +11,16 @@ from urllib.parse import parse_qsl, urlparse
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import evalpad_routes as routes  # noqa: E402
+import quickeval_routes as routes  # noqa: E402
 
 DIST = HERE / "dashboard" / "dist"
 CTYPES = {".css": "text/css", ".js": "application/javascript"}
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Evalpad</title><link rel="stylesheet" href="/dist/style.css"></head>
-<body class="evalpad-standalone"><div id="root"></div>
+<title>Quick Eval</title><link rel="stylesheet" href="/dist/style.css"></head>
+<body class="quickeval-standalone"><div id="root"></div>
 <script src="/dist/index.js"></script>
-<script>EvalpadUI.mount(document.getElementById('root'), {apiBase: '/api'});</script>
+<script>QuickEvalUI.mount(document.getElementById('root'), {apiBase: '/api'});</script>
 </body></html>"""
 
 
@@ -33,7 +33,7 @@ def read_json(handler):
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "Evalpad/1.0"
+    server_version = "Quick Eval/1.0"
 
     def log_message(self, *_args):
         return None
@@ -108,7 +108,7 @@ def parse_args():
 def main():
     args = parse_args()
     server = serve(args.port, args.host, args.open)
-    print(f"Evalpad running at http://{args.host}:{args.port}/  (Ctrl-C to stop)")
+    print(f"Quick Eval running at http://{args.host}:{args.port}/  (Ctrl-C to stop)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

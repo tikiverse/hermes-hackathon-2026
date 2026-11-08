@@ -6,7 +6,7 @@ import time
 import uuid
 from collections import Counter
 
-import evalpad_paths as paths
+import quickeval_paths as paths
 
 LOCK = threading.Lock()
 EDITABLE = ("verdict", "score", "tags", "notes", "expected", "comparisons", "prompt", "response")

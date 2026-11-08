@@ -10,14 +10,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-import evalpad_compare  # noqa: E402
-import evalpad_routes as routes  # noqa: E402
-import evalpad_sessions as sessions  # noqa: E402
-import evalpad_store as store  # noqa: E402
+import quickeval_compare  # noqa: E402
+import quickeval_routes as routes  # noqa: E402
+import quickeval_sessions as sessions  # noqa: E402
+import quickeval_store as store  # noqa: E402
 
 
 def load_plugin():
-    spec = importlib.util.spec_from_file_location("evalpad_pkg", ROOT / "__init__.py")
+    spec = importlib.util.spec_from_file_location("quickeval_pkg", ROOT / "__init__.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -27,7 +27,8 @@ class CoreTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         tmp = Path(self.tmp.name)
-        os.environ.update(EVALPAD_DIR=str(tmp / "evals"), EVALPAD_STATE_DB=str(tmp / "state.db"), HERMES_HOME=str(tmp))
+        os.environ.update(QUICKEVAL_DIR=str(tmp / "evals"), QUICKEVAL_STATE_DB=str(tmp / "state.db"),
+                          HERMES_HOME=str(tmp))
         conn = sqlite3.connect(tmp / "state.db")
         conn.executescript((ROOT / "tests" / "seed.sql").read_text())
         conn.commit()
@@ -86,10 +87,10 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(routes.handle("POST", "/evals", {}, {"score": 9})[0], 400)
 
     def test_compare_without_key_is_a_clean_error(self):
-        os.environ.pop("EVALPAD_TEST_KEY", None)
-        body = {"prompt": "hi", "model": "x", "base_url": "http://127.0.0.1:1", "api_key_env": "EVALPAD_TEST_KEY"}
+        os.environ.pop("QUICKEVAL_TEST_KEY", None)
+        body = {"prompt": "hi", "model": "x", "base_url": "http://127.0.0.1:1", "api_key_env": "QUICKEVAL_TEST_KEY"}
         with self.assertRaises(ValueError):
-            evalpad_compare.compare(body)
+            quickeval_compare.compare(body)
 
     def test_slash_command(self):
         plugin = load_plugin()

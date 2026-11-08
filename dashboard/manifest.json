@@ -1,10 +1,10 @@
 {
-  "name": "evalpad",
-  "label": "Evalpad",
+  "name": "quick-eval",
+  "label": "Quick Eval",
   "description": "Create evals from live Hermes conversations",
   "icon": "Zap",
   "version": "0.1.0",
-  "tab": { "path": "/evalpad", "position": "after:sessions" },
+  "tab": { "path": "/quick-eval", "position": "after:sessions" },
   "entry": "dist/index.js",
   "css": "dist/style.css",
   "api": "plugin_api.py"

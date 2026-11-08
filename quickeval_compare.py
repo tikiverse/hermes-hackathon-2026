@@ -4,7 +4,7 @@ import time
 import urllib.error
 import urllib.request
 
-import evalpad_paths as paths
+import quickeval_paths as paths
 
 OPENROUTER = "https://openrouter.ai/api/v1"
 DEFAULT_PRESETS = [

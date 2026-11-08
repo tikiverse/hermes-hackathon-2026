@@ -1,7 +1,7 @@
 """why: one dispatcher serves both the Hermes dashboard router and the standalone server."""
-import evalpad_compare as compare
-import evalpad_sessions as sessions
-import evalpad_store as store
+import quickeval_compare as compare
+import quickeval_sessions as sessions
+import quickeval_store as store
 
 
 def get_sessions(parts, query, _body):

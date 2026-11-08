@@ -1,7 +1,7 @@
-"""Evalpad: create evals from a live Hermes conversation in one keystroke.
+"""Quick Eval: create evals from a live Hermes conversation in one keystroke.
 
 /eval [good|bad|1-5] [note]   record the last exchange
-/eval open                    open the Evalpad UI
+/eval open                    open the Quick Eval UI
 """
 import sys
 import threading
@@ -10,8 +10,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import evalpad_sessions as sessions  # noqa: E402
-import evalpad_store as store  # noqa: E402
+import quickeval_sessions as sessions  # noqa: E402
+import quickeval_store as store  # noqa: E402
 import standalone  # noqa: E402
 
 PORT = 8765
@@ -42,7 +42,7 @@ def open_ui():
         server = standalone.serve(PORT)
         threading.Thread(target=server.serve_forever, daemon=True).start()
     webbrowser.open(URL)
-    return f"Evalpad: {URL}"
+    return f"Quick Eval: {URL}"
 
 
 def last_answered_turn():
@@ -57,12 +57,12 @@ def last_answered_turn():
 def save_last(raw):
     session, turn = last_answered_turn()
     if turn is None:
-        return "Evalpad: nothing to evaluate yet."
+        return "Quick Eval: nothing to evaluate yet."
     verdict, score, note = parse_args(raw)
     store.create_eval({"session_id": session["id"], "message_id": turn["message_id"], "turn_index": turn["index"],
                        "model": session["model"], "prompt": turn["prompt"], "response": turn["response"],
                        "verdict": verdict, "score": score, "notes": note})
-    return f"Evalpad: saved ({verdict or 'unrated'}). {store.stats()['total']} evals total. `/eval open` to review."
+    return f"Quick Eval: saved ({verdict or 'unrated'}). {store.stats()['total']} evals total. `/eval open` to review."
 
 
 def eval_command(raw_args=""):
@@ -72,7 +72,7 @@ def eval_command(raw_args=""):
     try:
         return save_last(raw)
     except Exception as err:  # why: an eval must never break the chat
-        return f"Evalpad: could not read the session ({err})"
+        return f"Quick Eval: could not read the session ({err})"
 
 
 def register(ctx):
