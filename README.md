@@ -49,6 +49,7 @@ plugins:
         allow_model_override: true
         allow_provider_override: true
       default: [claude]
+      params: {temperature: 0.7, max_tokens: 1024}   # same for every model; sweeps belong in MLflow
       models:
         claude: {provider: openrouter, model: anthropic/claude-sonnet-5.5}
         hermes: {provider: openrouter, model: nousresearch/hermes-4-405b}

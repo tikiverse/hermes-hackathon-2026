@@ -104,7 +104,7 @@ class QuickEval:
         targets = self.targets_for(names, config)
         if isinstance(targets, str) or not targets:
             return targets or "No models picked."
-        return self.ask(targets)
+        return self.ask(targets, settings.params(config))
 
     def ensure_trusted(self):
         config = self.config.load()
@@ -121,9 +121,9 @@ class QuickEval:
             return evals.resolve_targets(names, settings.aliases(config))
         return self._choose_targets(config)
 
-    def ask(self, targets):
+    def ask(self, targets, params):
         self.ui.say(f"Asking {', '.join(t.describe() for t in targets)}...")
-        run = self.store.append(evals.run_eval(self.last_turn, targets, self.llm.complete))
+        run = self.store.append(evals.run_eval(self.last_turn, targets, self.llm.complete, params))
         self.last_run = run
         return evals.format_eval(run) + "\n" + self.prompt_winner(run)
 

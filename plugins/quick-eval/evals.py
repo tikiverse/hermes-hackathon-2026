@@ -38,16 +38,16 @@ def resolve_targets(names: list[str], aliases: dict) -> list[Target]:
     return [target_for(name, aliases) for name in names]
 
 
-def call_model(complete, prompt, target):
+def call_model(complete, prompt, target, params):
     result = complete([{"role": "user", "content": prompt}], provider=target.provider, model=target.model,
-                      purpose="quick-eval")
+                      purpose="quick-eval", **params)
     return {"text": result.text or "", "model": getattr(result, "model", None) or target.model, "error": None}
 
 
-def ask(complete, prompt, target, label):
+def ask(complete, prompt, target, label, params):
     start = time.perf_counter()
     try:
-        got = call_model(complete, prompt, target)
+        got = call_model(complete, prompt, target, params)
     except Exception as exc:  # why: one broken model must not sink the whole eval
         got = {"text": "", "model": target.model, "error": f"{type(exc).__name__}: {exc}"}
     latency = round((time.perf_counter() - start) * 1000)
@@ -55,13 +55,14 @@ def ask(complete, prompt, target, label):
                          error=got["error"])
 
 
-def run_eval(turn: dict, targets: list[Target], complete) -> dict:
-    """why: answer A is the reply the user saw; B.. are the targets, asked in parallel with only the prompt."""
+def run_eval(turn: dict, targets: list[Target], complete, params: dict) -> dict:
+    """why: answer A is the reply the user saw; B.. are the targets, asked in parallel with the prompt + same params."""
     original = schema.answer("A", turn.get("model"), turn["response"])
-    jobs = [partial(ask, complete, turn["prompt"], t, label) for t, label in zip(targets, LABELS[1:], strict=False)]
+    labels = zip(targets, LABELS[1:], strict=False)
+    jobs = [partial(ask, complete, turn["prompt"], t, label, params) for t, label in labels]
     with ThreadPoolExecutor(max_workers=max(1, len(jobs))) as pool:
         reruns = list(pool.map(call_job, jobs))
-    return schema.run_record(turn["prompt"], [original, *reruns], session_id=turn.get("session_id"))
+    return schema.run_record(turn["prompt"], [original, *reruns], session_id=turn.get("session_id"), params=params)
 
 
 def call_job(job):
