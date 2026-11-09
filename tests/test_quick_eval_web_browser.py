@@ -164,3 +164,33 @@ def test_leaderboard_headers_never_break_inside_a_word_on_phone(page):
     page.wait_for_selector(".ep-table th")
     wraps = page.eval_on_selector_all(".ep-table th", "ths => ths.map(t => getComputedStyle(t).overflowWrap)")
     assert set(wraps) == {"normal"}
+
+
+DESKTOP_PARENT = """async () => {
+  const html = (await (await fetch('/api/frame')).json()).html
+  const frame = document.createElement('iframe')
+  frame.setAttribute('sandbox', 'allow-scripts')
+  frame.style.cssText = 'width:100%;height:100vh;border:0'
+  frame.src = 'data:text/html;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(html)))
+  window.addEventListener('message', async (e) => {
+    const m = e.data
+    if (!m || m.type !== 'quickeval-rpc' || e.source !== frame.contentWindow) return
+    const init = m.method === 'GET' ? {} : {method: m.method, headers: {'Content-Type': 'application/json'},
+                                             body: JSON.stringify(m.body)}
+    const r = await fetch('/api' + m.path, init)
+    e.source.postMessage({type: 'quickeval-rpc-reply', id: m.id, ok: r.ok, data: await r.json()}, '*')
+  })
+  document.body.replaceChildren(frame)
+}"""
+
+
+def test_desktop_frame_works_through_the_parent_bridge(page):
+    """why: Hermes Desktop runs the UI in a sandboxed data: frame; every call must go through postMessage."""
+    page.evaluate(DESKTOP_PARENT)
+    frame = page.frame_locator("iframe")
+    frame.locator(".ep-head .ep-segb:has-text('Compare')").click()
+    frame.locator(".ep-cgrid .ep-col").nth(1).click()
+    frame.locator(".ep-bar .ep-btn.pri").click()
+    frame.locator(".ep-rail-list .ep-label:has-text('B')").wait_for()
+    assert judgments(page.evals_path)[-1]["good"] == ["B"]
+    assert frame.locator("a:has-text('Export JSONL')").count() == 0

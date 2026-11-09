@@ -41,7 +41,7 @@ Saved: B wins (anthropic/claude-sonnet-5.5) for eval r_3f9a1c2e.
 
 ## Review UI
 
-`/eval open` opens `http://127.0.0.1:8765` (also a **Quick Eval** tab in `hermes dashboard`; without Hermes: `uv run python plugins/quick-eval/standalone.py --open`). It reads `~/.hermes/state.db` read-only.
+`/eval open` opens `http://127.0.0.1:8765` (also a **Quick Eval** page in the Hermes Desktop sidebar and a tab in `hermes dashboard`; without Hermes: `uv run python plugins/quick-eval/standalone.py --open`). It reads `~/.hermes/state.db` read-only.
 
 | Tab | Use | Keys |
 |---|---|---|

@@ -21,7 +21,7 @@ Restart Hermes, then `/plugins` lists it. Once listed in the catalog: `hermes pl
 |---|---|
 | Terminal (`hermes`) | `/eval` → checklist of models → answers → pick the good ones |
 | Chat apps (Desktop, phone, gateways) | `/eval claude local` (name the models), then `/eval pick A,B` |
-| Review UI | `/eval open` → http://127.0.0.1:8765. Also a tab in `hermes dashboard`. No Hermes: `uv run python plugins/quick-eval/standalone.py --open` |
+| Review UI | `/eval open` → http://127.0.0.1:8765. Also a **Quick Eval** page in the Hermes Desktop sidebar and a tab in `hermes dashboard`. No Hermes: `uv run python plugins/quick-eval/standalone.py --open` |
 
 ### Demo in Docker
 
