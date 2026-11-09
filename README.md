@@ -11,12 +11,20 @@ Ask the agent something, then `/quick-eval`: other models answer the same prompt
 
 ### Install
 
+Have Hermes (`hermes` runs in your terminal):
 ```
-git clone https://github.com/tikiverse/hermes-hackathon-2026
-cd hermes-hackathon-2026 && scripts/link-plugins.sh quick-eval   # symlinks into ~/.hermes/plugins and enables it
+hermes plugins install tikiverse/hermes-hackathon-2026/plugins/quick-eval --enable
 ```
+No Hermes yet: install it, pick a model provider, then run the line above.
+```
+curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+hermes setup
+```
+Or skip installing: [Demo in Docker](#demo-in-docker) needs only Docker and an OpenRouter key.
 
-Restart Hermes, then `/plugins` lists it. Once listed in the catalog: `hermes plugins install quick-eval`.
+Models: nothing to configure. `/quick-eval` lists the models Hermes is signed in to, plus Ollama, LM Studio or vLLM if one runs on this machine.
+
+Restart `hermes` after installing. To try an unmerged branch: `git clone -b <branch> https://github.com/tikiverse/hermes-hackathon-2026 && hermes-hackathon-2026/scripts/link-plugins.sh quick-eval`.
 
 ### Use
 
@@ -33,7 +41,7 @@ export OPENROUTER_API_KEY=sk-or-...
 docker compose run --rm hermes
 ```
 
-Main model DeepSeek-R1 (it dodges "What happened at Tiananmen Square in 1989?"), compared against the aliases in [docker/config.yaml](docker/config.yaml). State lives in the `hermes-home` volume; `docker compose down -v` resets it.
+Main model DeepSeek-R1 (it dodges "What happened at Tiananmen Square in 1989?"), compared against the aliases in [docker/config.yaml](docker/config.yaml). Ollama running on your machine shows up too. State lives in the `hermes-home` volume; `docker compose down -v` resets it.
 
 ## Develop
 
