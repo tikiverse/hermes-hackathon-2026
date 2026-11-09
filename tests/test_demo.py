@@ -73,3 +73,9 @@ def test_readme_cleanup_removes_what_the_demo_made():
     made = [path.replace("$HOME", "~") for path in re.findall(r"QE_(?:DIR|DEMO_HOME):-([^}]+)}", script)]
     assert sorted(re.search(r"^rm -rf (.+)$", readme, re.M).group(1).split()) == sorted(made)
     assert re.search(r"^ollama rm (.+)$", readme, re.M).group(1).split() == pull_line()
+
+
+def test_demo_steps_name_only_models_the_demo_config_has():
+    named = set(re.findall(r"/quick-eval (\w[\w.:-]*)", SCRIPT.read_text())) - {"pick", "open", "allow"}
+    aliases = yaml.safe_load(CONFIG.read_text())["plugins"]["entries"]["quick-eval"]["models"]
+    assert named and named <= set(aliases)

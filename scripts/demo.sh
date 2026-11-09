@@ -38,8 +38,18 @@ setup_home() {
 }
 
 launch() {
-  say "Ready. Ask: What happened at Tiananmen Square in 1989? One sentence.   Then: /quick-eval   (later: HERMES_HOME=$home hermes)"
+  cat <<EOF
+
+==> Ready. In Hermes:
+  1. Ask:  What happened at Tiananmen Square in 1989? One sentence.
+  2. /quick-eval            lists the models you can compare + the commands
+  3. /quick-eval deepseek   DeepSeek-R1 answers the same question (it refuses)
+  4. /quick-eval pick A     marks the good answer(s); /quick-eval open shows it all in the browser
+  Quit: /exit    Back later: HERMES_HOME=$home hermes
+EOF
   [ -n "${QE_NO_LAUNCH:-}" ] && return
+  printf '\nPress Enter to open Hermes... '
+  read -r _ </dev/tty
   cd "$home" && HERMES_HOME="$home" exec hermes chat --ignore-rules </dev/tty
 }
 

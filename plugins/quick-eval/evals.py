@@ -100,10 +100,6 @@ def answer_lines(a):
     return [f"── {a['label']} · {short_model(a.get('model')) or 'unknown'} · {tag} ──", body, ""]
 
 
-def choices(run):
-    return "|".join([a["label"] for a in run["answers"]] + list(schema.OUTCOMES))
-
-
 def format_eval(run: dict) -> str:
     lines = [f"Eval {run['id']}: {run['prompt']}", ""]
     lines += [line for a in run["answers"] for line in answer_lines(a)]
@@ -126,7 +122,7 @@ def pick_words(word: str, run: dict) -> tuple:
 
 def parse_pick(raw: str, run: dict) -> dict | str:
     """why: '/quick-eval pick b great answer' -> judgment; returns a usage string on bad input."""
-    usage = f"Usage: /quick-eval pick {choices(run)} [note]  (several good: /quick-eval pick A,B)"
+    usage = f"Usage: /quick-eval pick A,B [note]: the good answers ({', '.join(schema.labels_of(run))}), or none"
     parts = raw.strip().split(None, 1)
     if not parts:
         return usage
@@ -138,8 +134,7 @@ def parse_pick(raw: str, run: dict) -> dict | str:
 
 
 def verdict_text(run: dict, winner: str, good: list | None = None) -> str:
-    if winner == "tie":
-        return f"tie: {', '.join(good or schema.labels_of(run))} good"
     if winner == "none":
-        return "no good answer"
-    return f"{winner} wins ({schema.winner_model(run, winner)})"
+        return "Marked: no good answer"
+    labels = good or (schema.labels_of(run) if winner == "tie" else [winner])
+    return "Marked good: " + ", ".join(f"{label} ({short_model(schema.winner_model(run, label))})" for label in labels)

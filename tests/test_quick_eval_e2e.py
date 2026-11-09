@@ -94,7 +94,7 @@ def test_eval_and_score_through_real_hermes(tmp_path, fake_server):
 
     assert "Troops fired on protesters" in out["eval"], out["eval"]
     assert "I can't discuss that." in out["eval"]
-    assert "B wins" in out["score"]
+    assert "Marked good: B" in out["score"]
 
     assert len(requests) == 1
     assert requests[0]["body"]["model"] == "fake-model"

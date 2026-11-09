@@ -141,7 +141,7 @@ def test_eval_raw_model_ids(make):
 
 def test_failing_model_does_not_sink_the_eval(make):
     plugin = make()
-    out = plugin.cmd_eval("broken claude")
+    out = plugin.cmd_eval("broken@openrouter claude")
     answers = log(plugin)[0]["answers"]
     assert answers[1]["error"] == "RuntimeError: model unavailable"
     assert answers[2]["text"] == "answer from anthropic/claude-sonnet-5-5"
@@ -182,7 +182,7 @@ def test_bare_command_is_help_with_question_models_and_commands(make):
 def test_help_caps_a_long_model_list(make):
     hermes = [("openrouter", f"m{i}") for i in range(20)]
     out = make(hermes=hermes).cmd_eval("")
-    assert "more: any model id works" in out
+    assert "more; any model also works as model@provider" in out
 
 
 def test_naming_a_local_server_model_adds_the_server_once(make):
@@ -228,7 +228,7 @@ def test_pick_flow(make):
     plugin.cmd_eval("claude")
     assert "Usage: /quick-eval pick" in plugin.cmd_eval("pick")
     assert "Unknown choice 'Z'" in plugin.cmd_eval("pick Z")
-    assert "B wins (anthropic/claude-sonnet-5-5)" in plugin.cmd_eval("pick b answered directly")
+    assert "Marked good: B (anthropic/claude-sonnet-5-5)" in plugin.cmd_eval("pick b answered directly")
     judged = log(plugin)[-1]
     assert (judged["run_id"], judged["winner"], judged["note"]) == (log(plugin)[0]["id"], "B", "answered directly")
 
@@ -236,7 +236,8 @@ def test_pick_flow(make):
 def test_pick_several_good_answers(make):
     plugin = make()
     plugin.cmd_eval("claude")
-    assert "tie: A, B good" in plugin.cmd_eval("pick a,b both fine")
+    out = plugin.cmd_eval("pick a,b both fine")
+    assert "Marked good: A (deepseek/deepseek-r1), B (anthropic/claude-sonnet-5-5)" in out
     judged = log(plugin)[-1]
     assert (judged["good"], judged["winner"], judged["note"]) == (["A", "B"], "tie", "both fine")
 
@@ -244,15 +245,15 @@ def test_pick_several_good_answers(make):
 def test_pick_tie_and_none(make):
     plugin = make()
     plugin.cmd_eval("claude")
-    assert "tie" in plugin.cmd_eval("pick tie")
-    assert "no good answer" in plugin.cmd_eval("pick NONE")
+    assert "Marked good: A" in plugin.cmd_eval("pick tie")
+    assert "Marked: no good answer" in plugin.cmd_eval("pick NONE")
     assert [r["winner"] for r in log(plugin)[1:]] == ["tie", "none"]
 
 
 def test_pick_after_restart_reads_log(make, module, tmp_path):
     make().cmd_eval("claude")
     second = module.QuickEval(llm=FakeLLM(), config=FakeConfig(TRUSTED, tmp_path))
-    assert "B wins" in second.cmd_eval("pick B")
+    assert "Marked good: B" in second.cmd_eval("pick B")
 
 
 def test_one_command_named_after_the_plugin(load):
@@ -302,12 +303,32 @@ def test_only_the_same_model_picked_asks_nothing(make):
     plugin = make()
     out = plugin.cmd_eval("deepseek/deepseek-r1")
     assert plugin.llm.calls == []
-    assert "Name a different model" in out
+    assert "Name a different model: /quick-eval lists them." in out
 
 
 def test_empty_answer_is_an_error_with_a_reason(make):
     plugin = make()
-    out = plugin.cmd_eval("thinker")
+    out = plugin.cmd_eval("thinker@ollama")
     answer = log(plugin)[0]["answers"][1]
     assert answer["error"].startswith("empty answer")
     assert "[error] empty answer" in out
+
+
+def test_a_typo_calls_no_model_and_points_at_the_list(make):
+    plugin = make()
+    out = plugin.cmd_eval("pikc A")
+    assert "Unknown model pikc, A" in out and "Run /quick-eval" in out
+    assert plugin.llm.calls == []
+
+
+def test_help_leaves_out_the_model_that_wrote_the_answer(make):
+    out = make(hermes=[("openrouter", "deepseek/deepseek-r1"), ("openrouter", "openai/gpt-5")]).cmd_eval("")
+    assert "deepseek/deepseek-r1" not in listed_names(out)
+
+
+@pytest.mark.parametrize(("version", "refused"), [("0.18.9", True), ("0.19.0", False), ("0.23.0", False)])
+def test_hermes_older_than_the_manifest_floor_is_refused_with_a_fix(module, version, refused):
+    message = module.too_old_message(version)
+    assert (message is not None) == refused
+    if refused:
+        assert "hermes update" in message and module.min_hermes() in message

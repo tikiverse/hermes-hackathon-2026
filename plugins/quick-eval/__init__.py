@@ -9,9 +9,11 @@
 why text only: Hermes 0.19 runs plugin commands in the terminal, newer ones in the gateway; a typed command works
 on both and in chat apps, where a terminal picker does not.
 """
+import re
 import sys
 import threading
 import webbrowser
+from functools import partial
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -26,6 +28,7 @@ UI_URL = f"http://127.0.0.1:{PORT}/"
 NO_TURN = "Nothing to evaluate yet. Ask the agent something first, then run /quick-eval."
 NOT_ALLOWED = "First run /quick-eval allow: it lets quick-eval send your last question to other models."
 MAX_LISTED = 8
+MANIFEST = Path(__file__).resolve().parent / "plugin.yaml"
 COMMANDS = [
     ("/quick-eval {example}", "ask them (names from the list above)"),
     ("/quick-eval pick A,B [note]", "mark the good answers (or: none)"),
@@ -55,7 +58,29 @@ def shorten(text, size=70):
 def model_lines(rows):
     shown = [f"  {name:<24} {where}" for name, where in rows[:MAX_LISTED]]
     more = len(rows) - MAX_LISTED
-    return shown + ([f"  … {more} more: any model id works, or model@provider"] if more > 0 else [])
+    return shown + ([f"  … {more} more; any model also works as model@provider"] if more > 0 else [])
+
+
+def version_tuple(text):
+    return tuple(int(part) for part in re.findall(r"\d+", text)[:3])
+
+
+def min_hermes():
+    """why: plugin.yaml's requires_hermes is the one source; Hermes 0.19 ignores that key, so the plugin checks too."""
+    return re.search(r'requires_hermes:\s*"?>=\s*([\d.]+)', MANIFEST.read_text()).group(1)
+
+
+def too_old_message(version):
+    """why: Hermes older than the tested floor lacks what this plugin calls; refuse with a fix, never half-work."""
+    if version_tuple(version) >= version_tuple(min_hermes()):
+        return None
+    return f"quick-eval needs Hermes {min_hermes()} or newer; this is {version}. Run: hermes update"
+
+
+def is_model_id(name):
+    """why: a provider-style id (org/model) or model@provider names a model the list may not show; a bare unknown
+    word is far more often a typo (`/quick-eval pikc A`) that must not call models."""
+    return "/" in name or "@" in name
 
 
 def aliased_models(config):
@@ -109,18 +134,20 @@ class QuickEval:
         asked = f"Last question: {shorten(self.last_turn['prompt'])}" if self.last_turn else NO_TURN
         example = " ".join((settings.defaults(config) or [name for name, _ in rows[:2]] or ["<model>"])[:2])
         lines = ["quick-eval: ask other models your last question, then mark the good answers.", asked, ""]
-        lines += ["Models you can name:", *(model_lines(rows) or ["  none found: any model id works"]), ""]
+        lines += ["Models you can name:", *(model_lines(rows) or ["  none found: name one as model@provider"]), ""]
         lines += ["Commands:", *command_lines(example)]
         return "\n".join(lines + ([] if settings.is_trusted(config) else ["", NOT_ALLOWED]))
 
     def model_rows(self, config):
-        """why: aliases first (the user named them), then local servers, then models Hermes is signed in to."""
+        """why: aliases first (the user named them), then local servers, then models Hermes is signed in to; the
+        model that wrote the answer you saw is left out: asking it again compares it with itself."""
         aliased = [(n, f"{a['model']} · {a.get('provider') or 'default'}")
                    for n, a in settings.aliases(config).items() if isinstance(a, dict) and a.get("model")]
         covered = {a for _, a in aliased_models(config)}
         local = [(name, f"{s['name']}, local") for name, (s, m) in self.local_models().items() if m not in covered]
         signed_in = [(m, p) for p, m in dict.fromkeys(self.find_hermes())]
-        seen, rows = set(), []
+        seen = {(self.last_turn or {}).get("model")}
+        rows = []
         for name, where in aliased + local + signed_in:
             if name not in seen:
                 seen.add(name)
@@ -133,12 +160,24 @@ class QuickEval:
         config = self.config.load()
         if not settings.is_trusted(config):
             return NOT_ALLOWED
+        unknown = self.unknown_names(names, config)
+        if unknown:
+            return unknown
         targets = self.targets_for(names, config)
         kept, skipped = evals.split_same(targets, self.last_turn.get("model"))
         note = evals.skipped_note(skipped)
         if not kept:
-            return f"{note} Name a different model."
+            return f"{note} Name a different model: /quick-eval lists them."
         return "\n".join(filter(None, [note, self.ask(kept, settings.params(config))]))
+
+    def unknown_names(self, names, config):
+        listed = {name for name, _ in self.model_rows(config)} | set(settings.aliases(config))
+        listed.add((self.last_turn or {}).get("model"))
+        unknown = [n for n in names if n not in listed and not is_model_id(n)]
+        if not unknown:
+            return None
+        return (f"Unknown model {', '.join(unknown)}. Run /quick-eval to see the names you can use, "
+                "or name one as model@provider.")
 
     def targets_for(self, names, config):
         """why: a name served by a local server it finds becomes that server's model; the server joins Hermes once."""
@@ -170,7 +209,7 @@ class QuickEval:
             return judged
         self.store.append(judged)
         verdict = evals.verdict_text(run, judged["winner"], judged.get("good"))
-        return f"Saved: {verdict}. See it: /quick-eval open"
+        return f"{verdict}. See it: /quick-eval open"
 
 
 class LazyLLM:
@@ -183,7 +222,21 @@ class LazyLLM:
         return self.ctx.llm.complete(*args, **kwargs)
 
 
+def hermes_version():
+    from hermes_cli import __version__
+
+    return __version__
+
+
+def refuse(message, _raw=""):
+    return message
+
+
 def register(ctx):
+    old = too_old_message(hermes_version())
+    if old:
+        ctx.register_command("quick-eval", partial(refuse, old), description=old)
+        return
     plugin = QuickEval(llm=LazyLLM(ctx))
     ctx.register_hook("post_llm_call", plugin.on_post_llm_call)
     # why: Hermes silently gives a shared command name to the last-loaded plugin; the plugin's own name can't clash

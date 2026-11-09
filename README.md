@@ -33,7 +33,7 @@ Then this line gives the plugin a Hermes home of its own and opens Hermes:
 ```
 curl -fsSL https://raw.githubusercontent.com/tikiverse/hermes-hackathon-2026/quick-eval-ui/scripts/demo.sh | sh
 ```
-Ask "What happened at Tiananmen Square in 1989? One sentence." Then `/quick-eval` (lists models + commands), `/quick-eval deepseek` (DeepSeek-R1 refuses), `/quick-eval pick A`, `/quick-eval open`.
+It prints the 4 steps to try (ask, `/quick-eval`, `/quick-eval deepseek`, `/quick-eval pick A`), then opens Hermes on Enter.
 Remove the demo (the last 2 lines only if you installed them for it; `hermes uninstall` keeps `~/.hermes`):
 ```
 rm -rf ~/.hermes-quick-eval-demo ~/.cache/quick-eval-pr

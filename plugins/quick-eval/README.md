@@ -33,7 +33,8 @@ Next: /quick-eval pick A,B [note] marks the good answers (or: none) · /quick-ev
 ```
 
 - **Answer A** is the agent's reply exactly as you saw it. The other models get only your last question, with no system prompt or history, and run in parallel, each with the same settings and a 120 s timeout.
-- **Names:** an alias from your config, a model a local server serves, a raw model id, or `model@provider`.
+- **Names:** any name `/quick-eval` lists, an `org/model` id, or `model@provider`. Any other word is treated as a typo and calls nothing.
+- **Hermes version:** needs the `requires_hermes` in `plugin.yaml` (tested on 0.19 and 0.23). Older Hermes gets a message saying to update, not a half-working command.
 - **Text only, no pickers:** works the same in the terminal, on any Hermes version, and in chat apps.
 - **First use:** `/quick-eval allow` saves the one-time permission to send your question to other models.
 - **Why `/quick-eval`, not `/eval`:** Hermes gives a command name two plugins share to whichever loads last, without a warning. The plugin's own name can't clash.
