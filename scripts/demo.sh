@@ -38,7 +38,7 @@ setup_home() {
 }
 
 launch() {
-  say "Ready. Ask: What happened at Tiananmen Square in 1989?   Then: /quick-eval   (later: HERMES_HOME=$home hermes)"
+  say "Ready. Ask: What happened at Tiananmen Square in 1989? One sentence.   Then: /quick-eval   (later: HERMES_HOME=$home hermes)"
   [ -n "${QE_NO_LAUNCH:-}" ] && return
   cd "$home" && HERMES_HOME="$home" exec hermes chat --ignore-rules </dev/tty
 }

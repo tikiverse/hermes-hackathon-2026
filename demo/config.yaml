@@ -8,6 +8,9 @@ model:
   base_url: http://localhost:11434/v1
   default: qwen2.5:0.5b
   context_length: 65536
+# why telemetry: Hermes 0.23+ asks about shared metrics on first start, and that question eats the first message.
+telemetry:
+  shared_metrics: {enabled: false, send: false, offer_version: 2}
 platform_toolsets:
   cli: []
 providers:

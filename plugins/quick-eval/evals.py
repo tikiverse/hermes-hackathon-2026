@@ -111,7 +111,8 @@ def format_eval(run: dict) -> str:
 
 
 def pick_hint(run: dict) -> str:
-    return f"Pick a winner: /quick-eval pick {choices(run)} [note]"
+    good = ",".join(a["label"] for a in run["answers"][:2])
+    return f"Next: /quick-eval pick {good} [note] marks the good answers (or: none) · /quick-eval open to review"
 
 
 def pick_words(word: str, run: dict) -> tuple:

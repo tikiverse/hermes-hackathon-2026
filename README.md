@@ -33,7 +33,7 @@ Then this line gives the plugin a Hermes home of its own and opens Hermes:
 ```
 curl -fsSL https://raw.githubusercontent.com/tikiverse/hermes-hackathon-2026/quick-eval-ui/scripts/demo.sh | sh
 ```
-Ask "What happened at Tiananmen Square in 1989?", then `/quick-eval`: DeepSeek-R1 refuses.
+Ask "What happened at Tiananmen Square in 1989? One sentence." Then `/quick-eval` (lists models + commands), `/quick-eval deepseek` (DeepSeek-R1 refuses), `/quick-eval pick A`, `/quick-eval open`.
 Remove the demo (the last 2 lines only if you installed them for it; `hermes uninstall` keeps `~/.hermes`):
 ```
 rm -rf ~/.hermes-quick-eval-demo ~/.cache/quick-eval-pr
@@ -51,8 +51,8 @@ Restart `hermes` after installing.
 
 | Where | How |
 |---|---|
-| Terminal (`hermes`) | `/quick-eval` → checklist of models → answers → pick the good ones |
-| Chat apps (Desktop, phone, gateways) | `/quick-eval claude local` (name the models), then `/quick-eval pick A,B` |
+| Terminal (`hermes`) | `/quick-eval` lists models + commands → `/quick-eval deepseek` → `/quick-eval pick A,B` |
+| Chat apps (Desktop, phone, gateways) | same commands |
 | Review UI | `/quick-eval open` → http://127.0.0.1:8765. Also a tab in `hermes dashboard`. No Hermes: `uv run python plugins/quick-eval/standalone.py --open` |
 
 ## Develop

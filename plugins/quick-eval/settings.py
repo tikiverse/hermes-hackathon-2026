@@ -14,7 +14,8 @@ from pathlib import Path
 
 PLUGIN_ID = "quick-eval"
 # why: every model in one run gets the same settings, so answers compare like for like.
-DEFAULT_PARAMS = {"temperature": 0.7, "max_tokens": 1024}
+# why: the timeout (seconds) means one slow or stuck model must not hold up the others' answers.
+DEFAULT_PARAMS = {"temperature": 0.7, "max_tokens": 1024, "timeout": 120}
 
 
 class HermesConfig:

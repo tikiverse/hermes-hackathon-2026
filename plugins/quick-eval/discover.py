@@ -5,7 +5,8 @@ import os
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-LOCAL_PORTS = [("ollama", "Ollama", 11434), ("lmstudio", "LM Studio", 1234), ("vllm", "vLLM", 8000)]
+LOCAL_PORTS = [("ollama", "Ollama", 11434), ("lmstudio", "LM Studio", 1234), ("vllm", "vLLM", 8000),
+               ("llamacpp", "llama-server", 8080)]
 
 
 def default_servers() -> list[tuple[str, str, str]]:

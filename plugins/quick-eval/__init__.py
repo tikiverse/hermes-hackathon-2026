@@ -1,14 +1,17 @@
-"""why: quick-eval. /quick-eval asks other models your last question and lets you pick the best answer.
+"""why: quick-eval. Ask other models your last question, then mark which answers were good.
 
-/quick-eval [model ...]                 ask; then pick a winner (terminal) or get a /quick-eval pick hint
-/quick-eval pick A|A,B|tie|none [note]  record the good answer(s) of the last /quick-eval
-/quick-eval open                        open the UI: review chats and their answers, leaderboard
+/quick-eval                        help: your last question, the models you can name, the commands
+/quick-eval <model> [model ...]    ask them; answers print side by side
+/quick-eval pick A,B [note]        mark the good answers of the last run (or: none)
+/quick-eval open                   review page in the browser
+/quick-eval allow                  one-time permission to send your question to other models
+
+why text only: Hermes 0.19 runs plugin commands in the terminal, newer ones in the gateway; a typed command works
+on both and in chat apps, where a terminal picker does not.
 """
 import sys
 import threading
 import webbrowser
-from dataclasses import dataclass
-from functools import partial
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -17,21 +20,17 @@ import quickeval_log  # noqa: E402
 import standalone  # noqa: E402
 
 from . import discover, evals, settings  # noqa: E402
-from .ui import TerminalUI, file_link  # noqa: E402
 
 PORT = 8765
 UI_URL = f"http://127.0.0.1:{PORT}/"
 NO_TURN = "Nothing to evaluate yet. Ask the agent something first, then run /quick-eval."
-TRUST_QUESTION = "quick-eval needs permission to send your last question to other models. Save this permission?"
-PICK_TITLE = "Compare with which models? (space to toggle, enter to run)"
-WINNER_TITLE = "Which answer wins? (Esc to skip)"
-
-
-@dataclass
-class Option:
-    label: str
-    target: evals.Target
-    new_provider: dict | None = None
+NOT_ALLOWED = "First run /quick-eval allow: it lets quick-eval send your last question to other models."
+MAX_LISTED = 8
+COMMANDS = [
+    ("/quick-eval {example}", "ask them (names from the list above)"),
+    ("/quick-eval pick A,B [note]", "mark the good answers (or: none)"),
+    ("/quick-eval open", "review in the browser"),
+]
 
 
 def open_ui():
@@ -42,37 +41,42 @@ def open_ui():
     return f"quick-eval UI: {UI_URL}"
 
 
-def alias_option(name, alias):
-    if not isinstance(alias, dict) or not alias.get("model"):
-        return None
-    label = f"{name}: {alias['model']} · {alias.get('provider') or 'default'}"
-    return Option(label, evals.Target(name, alias["model"], alias.get("provider")))
+def file_link(path: Path) -> str:
+    """why: OSC 8 makes the path clickable in terminals that support it."""
+    uri = Path(path).resolve().as_uri()
+    return f"\033]8;;{uri}\033\\{path}\033]8;;\033\\"
 
 
-def local_options(server):
-    return [Option(f"{m} · {server['name']} (local, adds it to Hermes)", evals.Target(m, m, server["slug"]), server)
-            for m in server["models"]]
+def shorten(text, size=70):
+    line = " ".join(str(text).split())
+    return line if len(line) <= size else line[:size - 1] + "…"
 
 
-def winner_words(run):
-    return [a["label"] for a in run["answers"]] + ["tie", "none"]
+def model_lines(rows):
+    shown = [f"  {name:<24} {where}" for name, where in rows[:MAX_LISTED]]
+    more = len(rows) - MAX_LISTED
+    return shown + ([f"  … {more} more: any model id works, or model@provider"] if more > 0 else [])
 
 
-def winner_labels(run):
-    return [f"{a['label']} · {a.get('model') or 'unknown'}" for a in run["answers"]] + ["All good", "No good answer"]
+def aliased_models(config):
+    return [(n, a["model"]) for n, a in settings.aliases(config).items() if isinstance(a, dict) and a.get("model")]
+
+
+def command_lines(example):
+    return [f"  {cmd.format(example=example):<30} {what}" for cmd, what in COMMANDS]
 
 
 class QuickEval:
-    def __init__(self, llm, ui, config=None, store=None, find_hermes=None, find_local=None):
+    def __init__(self, llm, config=None, store=None, find_hermes=None, find_local=None, say=print):
         self.llm = llm
-        self.ui = ui
         self.config = config or settings.HermesConfig()
         self.store = store or quickeval_log.EvalLog(Path(self.config.home()) / "evals" / "evals.jsonl")
         self.find_hermes = find_hermes or discover.hermes_models
         self.find_local = find_local or discover.local_servers
+        self.say = say
         self.last_turn = None
         self.last_run = None
-        self.subcommands = {"open": self.cmd_open, "pick": self.cmd_pick}
+        self.subcommands = {"open": self.cmd_open, "pick": self.cmd_pick, "allow": self.cmd_allow}
 
     def on_post_llm_call(self, user_message=None, assistant_response=None, model=None, session_id=None, **kwargs):
         if user_message and assistant_response:
@@ -81,13 +85,17 @@ class QuickEval:
 
     def cmd_eval(self, raw_args: str = "") -> str:
         words = (raw_args or "").split()
-        handler = self.subcommands.get(words[0].lower()) if words else None
-        if handler:
-            return handler(" ".join(words[1:]))
-        return self.run(words)
+        if not words:
+            return self.help()
+        handler = self.subcommands.get(words[0].lower())
+        return handler(" ".join(words[1:])) if handler else self.run(words)
 
     def cmd_open(self, _raw: str = "") -> str:
         return open_ui()
+
+    def cmd_allow(self, _raw: str = "") -> str:
+        self.config.save(settings.trust_patch())
+        return f"Allowed. Saved in {file_link(self.config.path())}. Now: /quick-eval <model>"
 
     def cmd_pick(self, raw: str = "") -> str:
         run = self.last_run or self.store.latest_run()
@@ -95,47 +103,66 @@ class QuickEval:
             return "No eval to pick from yet. Run /quick-eval first."
         return self.save_pick(run, raw)
 
+    def help(self) -> str:
+        config = self.config.load()
+        rows = self.model_rows(config)
+        asked = f"Last question: {shorten(self.last_turn['prompt'])}" if self.last_turn else NO_TURN
+        example = " ".join((settings.defaults(config) or [name for name, _ in rows[:2]] or ["<model>"])[:2])
+        lines = ["quick-eval: ask other models your last question, then mark the good answers.", asked, ""]
+        lines += ["Models you can name:", *(model_lines(rows) or ["  none found: any model id works"]), ""]
+        lines += ["Commands:", *command_lines(example)]
+        return "\n".join(lines + ([] if settings.is_trusted(config) else ["", NOT_ALLOWED]))
+
+    def model_rows(self, config):
+        """why: aliases first (the user named them), then local servers, then models Hermes is signed in to."""
+        aliased = [(n, f"{a['model']} · {a.get('provider') or 'default'}")
+                   for n, a in settings.aliases(config).items() if isinstance(a, dict) and a.get("model")]
+        covered = {a for _, a in aliased_models(config)}
+        local = [(name, f"{s['name']}, local") for name, (s, m) in self.local_models().items() if m not in covered]
+        signed_in = [(m, p) for p, m in dict.fromkeys(self.find_hermes())]
+        seen, rows = set(), []
+        for name, where in aliased + local + signed_in:
+            if name not in seen:
+                seen.add(name)
+                rows.append((name, where))
+        return rows
+
     def run(self, names):
         if not self.last_turn:
             return NO_TURN
-        config = self.ensure_trusted()
-        if isinstance(config, str):
-            return config
+        config = self.config.load()
+        if not settings.is_trusted(config):
+            return NOT_ALLOWED
         targets = self.targets_for(names, config)
-        if isinstance(targets, str) or not targets:
-            return targets or "No models picked."
         kept, skipped = evals.split_same(targets, self.last_turn.get("model"))
         note = evals.skipped_note(skipped)
         if not kept:
-            return f"{note} Pick a different model."
+            return f"{note} Name a different model."
         return "\n".join(filter(None, [note, self.ask(kept, settings.params(config))]))
 
-    def ensure_trusted(self):
-        config = self.config.load()
-        if settings.is_trusted(config):
-            return config
-        if not self.ui.confirm(TRUST_QUESTION):
-            return ("quick-eval can't call other models until it's allowed. "
-                    f"Run /quick-eval in a terminal to approve it, or edit {file_link(self.config.path())}")
-        self.config.save(settings.trust_patch())
-        return self.config.load()
-
     def targets_for(self, names, config):
-        if names:
-            return evals.resolve_targets(names, settings.aliases(config))
-        return self._choose_targets(config)
+        """why: a name served by a local server it finds becomes that server's model; the server joins Hermes once."""
+        aliases = settings.aliases(config)
+        found = self.local_models()
+        served = {n: found[n] for n in names if n in found and n not in aliases}
+        self.add_servers({s["slug"]: s for s, _ in served.values()}.values(), settings.configured_provider_apis(config))
+        return [evals.Target(n, served[n][1], served[n][0]["slug"]) if n in served else evals.target_for(n, aliases)
+                for n in names]
+
+    def local_models(self):
+        """why: a server can name its model by a cache path; the user types the short name the help shows."""
+        return {evals.short_model(m): (s, m) for s in self.find_local() for m in s["models"]}
+
+    def add_servers(self, servers, known):
+        for server in servers:
+            if server["api"].rstrip("/") not in known:
+                self.config.save(settings.provider_patch(server["slug"], server["name"], server["api"]))
 
     def ask(self, targets, params):
-        self.ui.say(f"Asking {', '.join(t.describe() for t in targets)}...")
+        self.say(f"Asking {', '.join(t.describe() for t in targets)}...")
         run = self.store.append(evals.run_eval(self.last_turn, targets, self.llm.complete, params))
         self.last_run = run
-        return evals.format_eval(run) + "\n" + self.prompt_winner(run)
-
-    def prompt_winner(self, run):
-        picked = self.ui.pick_one(WINNER_TITLE, winner_labels(run))
-        if picked is None:
-            return evals.pick_hint(run)
-        return self.save_pick(run, winner_words(run)[picked])
+        return evals.format_eval(run) + "\n" + evals.pick_hint(run)
 
     def save_pick(self, run, raw):
         judged = evals.parse_pick(raw, run)
@@ -143,42 +170,7 @@ class QuickEval:
             return judged
         self.store.append(judged)
         verdict = evals.verdict_text(run, judged["winner"], judged.get("good"))
-        return f"Saved: {verdict} for eval {run['id']}. Log: {file_link(self.store.path)}"
-
-    def _options(self, config: dict) -> list[Option]:
-        aliased = [o for o in (alias_option(n, a) for n, a in settings.aliases(config).items()) if o]
-        seen = {(o.target.provider, o.target.model) for o in aliased}
-        found = [Option(f"{model} · {provider}", evals.Target(model, model, provider))
-                 for provider, model in dict.fromkeys(self.find_hermes()) if (provider, model) not in seen]
-        known = settings.configured_provider_apis(config)
-        local = [o for s in self.find_local() if s["api"].rstrip("/") not in known for o in local_options(s)]
-        return aliased + found + local
-
-    def default_targets(self, defaults, config):
-        if not defaults:
-            return ("No default models set. Use /quick-eval <alias or model>, or add a default list in "
-                    f"{file_link(self.config.path())}")
-        return evals.resolve_targets(defaults, settings.aliases(config))
-
-    def _choose_targets(self, config: dict):
-        defaults = settings.defaults(config)
-        if not self.ui.interactive:
-            return self.default_targets(defaults, config)
-        options = self._options(config)
-        if not options:
-            return ("No models found. Sign in to a provider with `hermes model`, or add aliases in "
-                    f"{file_link(self.config.path())}")
-        preselected = {i for i, o in enumerate(options) if o.target.name in defaults}
-        chosen = [options[i] for i in self.ui.pick_many(PICK_TITLE, [o.label for o in options], preselected) or []]
-        self.add_local_providers(chosen)
-        return [o.target for o in chosen]
-
-    def add_local_providers(self, chosen):
-        servers = {o.new_provider["slug"]: o.new_provider for o in chosen if o.new_provider}
-        for server in servers.values():
-            self.config.save(settings.provider_patch(server["slug"], server["name"], server["api"]))
-        if servers:
-            self.ui.say(f"Added {', '.join(s['name'] for s in servers.values())} to {file_link(self.config.path())}")
+        return f"Saved: {verdict}. See it: /quick-eval open"
 
 
 class LazyLLM:
@@ -192,10 +184,9 @@ class LazyLLM:
 
 
 def register(ctx):
-    manager = getattr(ctx, "_manager", None)
-    plugin = QuickEval(llm=LazyLLM(ctx), ui=TerminalUI(partial(getattr, manager, "_cli_ref", None)))
+    plugin = QuickEval(llm=LazyLLM(ctx))
     ctx.register_hook("post_llm_call", plugin.on_post_llm_call)
     # why: Hermes silently gives a shared command name to the last-loaded plugin; the plugin's own name can't clash
     ctx.register_command("quick-eval", plugin.cmd_eval,
-                         description="Ask other models your last question; pick the best",
-                         args_hint="[model ...] | pick A|A,B|tie|none [note] | open")
+                         description="Ask other models your last question; mark the good answers",
+                         args_hint="[model ...] | pick A,B [note] | open | allow")

@@ -10,7 +10,7 @@ Append-only. A line is never rewritten; the newest `judgment` per run wins. Line
   {"label":"A","model":"deepseek/deepseek-r1-0528","text":"I'm sorry…"},
   {"label":"B","model":"anthropic/claude-sonnet-5.5","text":"On June 3–4…","provider":"openrouter",
    "latency_ms":2140,"error":null}],
- "params":{"temperature":0.7,"max_tokens":1024}}
+ "params":{"temperature":0.7,"max_tokens":1024,"timeout":120}}
 ```
 - `A` is the reply you saw. `B`.. were asked again by `/quick-eval`, with only the prompt (no system prompt, no history).
 - `params`: the settings every `B`.. answer got (config `plugins.entries.quick-eval.params`). Same for all, so models compare like for like. `A` kept the chat's own settings.

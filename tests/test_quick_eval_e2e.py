@@ -113,14 +113,14 @@ def test_every_model_gets_the_same_params(tmp_path, fake_server):
     run(tmp_path, "fake", "B")
     assert requests[0]["body"]["temperature"] == 0.3
     first = json.loads((tmp_path / "evals" / "evals.jsonl").read_text().splitlines()[0])
-    assert first["params"] == {"temperature": 0.3, "max_tokens": 512}
+    assert first["params"] == {"temperature": 0.3, "max_tokens": 512, "timeout": 120}
 
 
-def test_untrusted_plugin_cannot_call_models_without_a_terminal(tmp_path, fake_server):
+def test_untrusted_plugin_calls_no_model_until_allowed(tmp_path, fake_server):
     api, requests = fake_server
     setup_home(tmp_path, api, trusted=False)
 
     out = run(tmp_path, "fake", "B")
 
-    assert "can't call other models" in out["eval"]
+    assert "/quick-eval allow" in out["eval"]
     assert requests == []

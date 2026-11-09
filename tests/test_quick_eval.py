@@ -37,43 +37,6 @@ class FakeLLM:
         return Result(text=f"answer from {model}", model=model, provider=provider or "main")
 
 
-def keep_preselected(items, preselected):
-    return sorted(preselected)
-
-
-def pick_last(items, preselected):
-    return [len(items) - 1]
-
-
-def pick_none(items, preselected):
-    return []
-
-
-class FakeUI:
-    def __init__(self, interactive=False, confirm=True, pick=keep_preselected, winner=None):
-        self.interactive = interactive
-        self.confirm_answer = confirm
-        self.pick = pick
-        self.winner = winner
-        self.picker_calls = []
-        self.single_calls = []
-        self.said = []
-
-    def confirm(self, question, **kwargs):
-        return self.confirm_answer
-
-    def pick_many(self, title, items, preselected):
-        self.picker_calls.append({"items": items, "preselected": preselected})
-        return self.pick(items, preselected)
-
-    def pick_one(self, title, items, cancel="Skip"):
-        self.single_calls.append(items)
-        return self.winner if self.interactive else None
-
-    def say(self, text):
-        self.said.append(text)
-
-
 def deep_merge(base, patch):
     for key, value in patch.items():
         if isinstance(value, dict) and isinstance(base.get(key), dict):
@@ -110,9 +73,13 @@ class Found:
         return list(self.items)
 
 
-def build(module, home, config=TRUSTED, ui=None, hermes=(), local=()):
-    plugin = module.QuickEval(llm=FakeLLM(), ui=ui or FakeUI(), config=FakeConfig(config, home),
-                              find_hermes=Found(hermes), find_local=Found(local))
+def silent(_text):
+    return None
+
+
+def build(module, home, config=TRUSTED, hermes=(), local=()):
+    plugin = module.QuickEval(llm=FakeLLM(), config=FakeConfig(config, home), find_hermes=Found(hermes),
+                              find_local=Found(local), say=silent)
     plugin.on_post_llm_call(session_id="s1", user_message="What happened at Tiananmen Square in 1989?",
                             assistant_response="Let's talk about something else.", model="deepseek/deepseek-r1")
     return plugin
@@ -133,7 +100,9 @@ def log(plugin):
 
 
 def test_eval_before_any_turn(module, tmp_path):
-    plugin = module.QuickEval(llm=FakeLLM(), ui=FakeUI(), config=FakeConfig(TRUSTED, tmp_path))
+    plugin = module.QuickEval(llm=FakeLLM(), config=FakeConfig(TRUSTED, tmp_path), find_hermes=Found(()),
+                              find_local=Found(()))
+    assert "Ask the agent something first" in plugin.cmd_eval("claude")
     assert "Ask the agent something first" in plugin.cmd_eval("")
 
 
@@ -161,7 +130,7 @@ def test_eval_writes_a_v1_run(make):
     assert (rerun["provider"], rerun["error"]) == ("openrouter", None)
     assert rerun["latency_ms"] >= 0
     assert "── B · anthropic/claude-sonnet-5-5" in out
-    assert "/quick-eval pick A|B|C|tie|none" in out
+    assert "Next: /quick-eval pick A,B [note]" in out
 
 
 def test_eval_raw_model_ids(make):
@@ -179,85 +148,78 @@ def test_failing_model_does_not_sink_the_eval(make):
     assert "[error] RuntimeError: model unavailable" in out
 
 
-def test_untrusted_and_declined(make):
-    plugin = make(config={}, ui=FakeUI(confirm=False))
-    assert "can't call other models" in plugin.cmd_eval("claude")
+def test_untrusted_asks_for_allow_and_calls_nothing(make):
+    plugin = make(config={})
+    assert "/quick-eval allow" in plugin.cmd_eval("claude")
+    assert "/quick-eval allow" in plugin.cmd_eval("")
     assert plugin.llm.calls == []
-    assert plugin.config.saves == []
 
 
-def test_untrusted_and_approved_saves_permission(make):
-    plugin = make(config={}, ui=FakeUI(confirm=True))
-    plugin.cmd_eval("openai/gpt-5")
+def test_allow_saves_permission_then_runs(make):
+    plugin = make(config={})
+    assert "Allowed" in plugin.cmd_eval("allow")
     llm = plugin.config.data["plugins"]["entries"]["quick-eval"]["llm"]
     assert llm == {"allow_model_override": True, "allow_provider_override": True}
+    plugin.cmd_eval("openai/gpt-5")
     assert len(plugin.llm.calls) == 1
 
 
-def test_bare_eval_without_terminal_uses_defaults(make):
-    plugin = make(ui=FakeUI(interactive=False))
-    plugin.cmd_eval("")
-    assert [c["model"] for c in plugin.llm.calls] == ["anthropic/claude-sonnet-5-5"]
+def listed_names(help_text):
+    return [line.split()[0] for line in help_text.split("Models you can name:\n")[1].split("\n\n")[0].splitlines()]
 
 
-def test_bare_eval_without_terminal_or_defaults(make):
-    config = copy.deepcopy(TRUSTED)
-    del config["plugins"]["entries"]["quick-eval"]["default"]
-    plugin = make(config=config, ui=FakeUI(interactive=False))
-    assert "No default models set" in plugin.cmd_eval("")
-
-
-def test_picker_lists_aliases_hermes_models_and_local_servers(make):
-    ui = FakeUI(interactive=True)
-    plugin = make(ui=ui, hermes=[("openrouter", "anthropic/claude-sonnet-5-5"), ("openrouter", "openai/gpt-5")],
+def test_bare_command_is_help_with_question_models_and_commands(make):
+    plugin = make(hermes=[("openrouter", "anthropic/claude-sonnet-5-5"), ("openrouter", "openai/gpt-5")],
                   local=[LMSTUDIO])
-    plugin.cmd_eval("")
-    assert ui.picker_calls[0]["items"] == [
-        "claude: anthropic/claude-sonnet-5-5 · openrouter",
-        "local: llama3.3 · ollama",
-        "openai/gpt-5 · openrouter",
-        "qwen3-8b · LM Studio (local, adds it to Hermes)",
-    ]
-    assert ui.picker_calls[0]["preselected"] == {0}
-    assert [c["model"] for c in plugin.llm.calls] == ["anthropic/claude-sonnet-5-5"]
+    out = plugin.cmd_eval("")
+    assert plugin.llm.calls == []
+    assert "Last question: What happened at Tiananmen Square in 1989?" in out
+    assert listed_names(out) == ["claude", "local", "qwen3-8b", "anthropic/claude-sonnet-5-5", "openai/gpt-5"]
+    assert "/quick-eval claude " in out and "/quick-eval pick A,B [note]" in out and "/quick-eval open" in out
+    assert "/quick-eval allow" not in out
 
 
-def test_picking_a_local_server_adds_it_to_hermes(make):
-    plugin = make(ui=FakeUI(interactive=True, pick=pick_last), local=[LMSTUDIO])
-    plugin.cmd_eval("")
+def test_help_caps_a_long_model_list(make):
+    hermes = [("openrouter", f"m{i}") for i in range(20)]
+    out = make(hermes=hermes).cmd_eval("")
+    assert "more: any model id works" in out
+
+
+def test_naming_a_local_server_model_adds_the_server_once(make):
+    plugin = make(local=[LMSTUDIO])
+    plugin.cmd_eval("qwen3-8b")
+    plugin.cmd_eval("qwen3-8b")
     assert plugin.config.data["providers"]["lmstudio"] == {"name": "LM Studio", "api": "http://localhost:1234/v1"}
+    assert len(plugin.config.saves) == 1
     assert (plugin.llm.calls[0]["provider"], plugin.llm.calls[0]["model"]) == ("lmstudio", "qwen3-8b")
 
 
-def test_local_server_already_in_hermes_is_not_offered_again(make):
+def test_help_shows_a_short_name_for_a_path_model_and_typing_it_works(make):
+    path = "/home/u/.cache/huggingface/hub/models--org--Qwen3-8B-4bit/snapshots/abc"
+    server = {"slug": "llamacpp", "name": "llama-server", "api": "http://localhost:8080/v1", "models": [path]}
+    plugin = make(local=[server])
+    assert "Qwen3-8B-4bit" in plugin.cmd_eval("") and path not in plugin.cmd_eval("")
+    plugin.cmd_eval("Qwen3-8B-4bit")
+    assert (plugin.llm.calls[0]["provider"], plugin.llm.calls[0]["model"]) == ("llamacpp", path)
+
+
+def test_help_skips_a_local_model_an_alias_already_names(make):
+    ollama = {"slug": "ollama", "name": "Ollama", "api": "http://localhost:11434/v1", "models": ["llama3.3", "qwen3"]}
+    assert listed_names(make(local=[ollama]).cmd_eval("")) == ["claude", "local", "qwen3"]
+
+
+def test_local_server_already_in_hermes_is_not_added_again(make):
     config = copy.deepcopy(TRUSTED)
     config["providers"] = {"lms": {"api": "http://localhost:1234/v1/"}}
-    ui = FakeUI(interactive=True)
-    make(config=config, ui=ui, local=[LMSTUDIO]).cmd_eval("")
-    assert not any("LM Studio" in item for item in ui.picker_calls[0]["items"])
+    plugin = make(config=config, local=[LMSTUDIO])
+    plugin.cmd_eval("qwen3-8b")
+    assert plugin.config.saves == []
 
 
-def test_picker_cancelled(make):
-    plugin = make(ui=FakeUI(interactive=True, pick=pick_none))
-    assert plugin.cmd_eval("") == "No models picked."
-    assert plugin.llm.calls == []
-
-
-def test_inline_winner_picker_saves_a_judgment(make):
-    ui = FakeUI(interactive=True, winner=1)
-    plugin = make(ui=ui)
-    out = plugin.cmd_eval("claude")
-    assert ui.single_calls[0] == ["A · deepseek/deepseek-r1", "B · anthropic/claude-sonnet-5-5", "All good",
-                                  "No good answer"]
-    assert "Saved: B wins (anthropic/claude-sonnet-5-5)" in out
-    run, judged = log(plugin)
-    assert (judged["type"], judged["run_id"], judged["winner"]) == ("judgment", run["id"], "B")
-
-
-def test_skipping_the_inline_picker_leaves_a_hint(make):
-    plugin = make(ui=FakeUI(interactive=True, winner=None, pick=keep_preselected))
-    assert "Pick a winner: /quick-eval pick A|B|tie|none" in plugin.cmd_eval("claude")
-    assert [r["type"] for r in log(plugin)] == ["run"]
+def test_every_model_gets_the_same_settings_and_a_timeout(make):
+    plugin = make()
+    plugin.cmd_eval("claude local")
+    assert log(plugin)[0]["params"] == {"temperature": 0.7, "max_tokens": 1024, "timeout": 120}
 
 
 def test_pick_flow(make):
@@ -289,7 +251,7 @@ def test_pick_tie_and_none(make):
 
 def test_pick_after_restart_reads_log(make, module, tmp_path):
     make().cmd_eval("claude")
-    second = module.QuickEval(llm=FakeLLM(), ui=FakeUI(), config=FakeConfig(TRUSTED, tmp_path))
+    second = module.QuickEval(llm=FakeLLM(), config=FakeConfig(TRUSTED, tmp_path))
     assert "B wins" in second.cmd_eval("pick B")
 
 
@@ -317,7 +279,7 @@ def test_local_server_host_override(module, monkeypatch):
 
 
 def test_file_link_is_clickable(module, tmp_path):
-    link = module.ui.file_link(tmp_path / "config.yaml")
+    link = module.file_link(tmp_path / "config.yaml")
     assert link.startswith("\033]8;;file://") and link.endswith("\033]8;;\033\\")
 
 
@@ -340,7 +302,7 @@ def test_only_the_same_model_picked_asks_nothing(make):
     plugin = make()
     out = plugin.cmd_eval("deepseek/deepseek-r1")
     assert plugin.llm.calls == []
-    assert "Pick a different model" in out
+    assert "Name a different model" in out
 
 
 def test_empty_answer_is_an_error_with_a_reason(make):
