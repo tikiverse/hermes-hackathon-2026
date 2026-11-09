@@ -367,8 +367,15 @@ function isNot(label, other) { return other !== label }
 function setGood(good) {
   EP.draft.good = labels().filter(isIn.bind(null, good))
   EP.dirty = true
-  swap(".ep-cgrid", gridEl(answersOf(turn())))
+  EP.els.body.querySelectorAll(".ep-now .ep-col").forEach(markCol)
   swap(".ep-bar", barEl())
+}
+
+/* why: mark cards in place; rebuilding the row reset the phone deck to card A */
+function markCol(col, i) {
+  const good = isGood(labels()[i])
+  col.classList.toggle("won", good)
+  col.setAttribute("aria-pressed", String(good))
 }
 
 function toggleGood(label) {

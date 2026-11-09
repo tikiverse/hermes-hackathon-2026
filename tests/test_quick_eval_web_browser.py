@@ -187,3 +187,15 @@ def test_several_answers_are_a_swipe_deck_on_phone(page):
     tops = page.eval_on_selector_all(".ep-now .ep-col", "cs => cs.map(c => Math.round(c.getBoundingClientRect().top))")
     assert len(set(tops)) == 1
     assert page.eval_on_selector(".ep-now .ep-cgrid", "g => getComputedStyle(g).scrollSnapType").startswith("x")
+
+
+def test_marking_a_card_keeps_the_phone_deck_on_that_card(page):
+    """why: Shaun: tapping card 2+ jumped the deck back to card A."""
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.eval_on_selector(".ep-now .ep-col >> nth=2", "c => c.scrollIntoView({inline: 'center'})")
+    page.wait_for_timeout(300)
+    before = page.eval_on_selector(".ep-now .ep-cgrid", "g => g.scrollLeft")
+    page.click(".ep-now .ep-col >> nth=2")
+    assert before > 0
+    assert page.eval_on_selector(".ep-now .ep-cgrid", "g => g.scrollLeft") == before
+    assert page.locator(".ep-col.won").count() == 1
