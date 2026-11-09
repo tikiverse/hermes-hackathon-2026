@@ -17,7 +17,7 @@ I'm sorry, I can't discuss that topic.
 ── B · anthropic/claude-sonnet-5.5 · 2140 ms ──
 On June 3–4, 1989, the Chinese army cleared the square...
 
-  (Which answer wins? A · B · Tie · No good answer · Skip)
+  (Which answer wins? A · B · All good · No good answer; Esc skips)
 Saved: B wins (anthropic/claude-sonnet-5.5) for eval r_3f9a1c2e.
 
 > /quick-eval pick B answered directly      # same thing from a gateway, or to change your pick

@@ -6,6 +6,9 @@
 
 Ask the agent something, then `/quick-eval`: other models answer the same prompt, you mark the good answers, and a leaderboard adds them up. Details and what it touches: [plugins/quick-eval/README.md](plugins/quick-eval/README.md).
 
+![Tiananmen 1989: three Claude models answer, local Qwen refuses](docs/img/tiananmen.png)
+*"What happened at Tiananmen Square in 1989?" Three Claude models answer; the local Qwen model refuses.*
+
 ### Install
 
 ```
