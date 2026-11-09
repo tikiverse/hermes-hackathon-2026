@@ -19,7 +19,7 @@ Enter quick-eval in the Hermes Agent Plugin Hackathon. The entry **is** this PR:
 |---|---|
 | Public repo, `plugin.yaml` + `__init__.py`, `subdir: plugins/quick-eval` | done |
 | `hermes plugins validate` passes | done |
-| `requires_hermes` (rule 14) | done, `>=0.22.7` |
+| `requires_hermes` (rule 14) | done; equals the Hermes the tests run on (`tests/test_contract.py`) |
 | Plugin README at subdir (renders on catalog page) | done |
 | Demo video | https://github.com/tikiverse/hermes-hackathon-2026/issues/3 |
 

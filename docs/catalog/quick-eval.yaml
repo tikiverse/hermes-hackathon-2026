@@ -9,7 +9,7 @@ description: "Ask other models your last question with /quick-eval, see every an
 maintainer: tikiverse
 tier: community
 category: models
-requires_hermes: ">=0.22.7"
+requires_hermes: ">=0.19"
 docs_url: https://github.com/tikiverse/hermes-hackathon-2026/tree/main/plugins/quick-eval#readme
 readme: true
 screenshots: []

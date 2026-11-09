@@ -408,6 +408,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "jsonschema" },
+    { name = "packaging" },
     { name = "playwright" },
     { name = "pytest" },
     { name = "pyyaml" },
@@ -419,6 +420,7 @@ requires-dist = [{ name = "hermes-agent", specifier = ">=0.19" }]
 [package.metadata.requires-dev]
 dev = [
     { name = "jsonschema", specifier = ">=4" },
+    { name = "packaging", specifier = ">=26.0" },
     { name = "playwright", specifier = ">=1.50,<2" },
     { name = "pytest", specifier = ">=8" },
     { name = "pyyaml", specifier = ">=6" },
