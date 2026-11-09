@@ -63,7 +63,7 @@
 .ep-input { min-height: var(--ep-tap); width: 100%; background-color: var(--ep-bg); color: var(--ep-fg); border: 1px solid var(--ep-line); border-radius: var(--ep-r-sm); padding: 6px 10px; }
 textarea.ep-input { resize: vertical; margin-top: 8px; }
 .ep-input:focus, .ep-segb:focus-visible, .ep-btn:focus-visible, .ep-item:focus-visible, .ep-col:focus-visible { outline: 2px solid var(--ep-accent); outline-offset: -1px; }
-.ep-check { display: inline-flex; align-items: center; gap: 6px; color: var(--ep-muted); font-size: 12px; white-space: nowrap; cursor: pointer; }
+.ep-check { display: inline-flex; align-items: center; gap: 6px; min-height: var(--ep-tap); color: var(--ep-muted); font-size: 12px; white-space: nowrap; cursor: pointer; }
 .ep-check input { accent-color: var(--ep-accent); margin: 0; }
 .ep-label { font: 600 11px var(--ep-mono); color: var(--ep-accent); border: 1px solid var(--ep-accent); border-radius: 4px; padding: 0 5px; flex: none; }
 .ep-hint { margin: 0; font-size: 12px; color: var(--ep-muted); }
