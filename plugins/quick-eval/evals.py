@@ -9,6 +9,8 @@ from functools import partial
 from . import quickeval_schema as schema
 
 LABELS = string.ascii_uppercase
+# why: a reasoning model can spend its whole output budget thinking and return no text; say so, never show a blank.
+EMPTY = "empty answer: the model returned no text (a reasoning model may have used its token limit thinking)"
 HF_REPO = re.compile(r"models--[^/]*?--([^/]+)")
 
 
@@ -63,7 +65,8 @@ def skipped_note(skipped):
 def call_model(complete, prompt, target, params):
     result = complete([{"role": "user", "content": prompt}], provider=target.provider, model=target.model,
                       purpose="quick-eval", **params)
-    return {"text": result.text or "", "model": getattr(result, "model", None) or target.model, "error": None}
+    text = (result.text or "").strip()
+    return {"text": text, "model": getattr(result, "model", None) or target.model, "error": None if text else EMPTY}
 
 
 def ask(complete, prompt, target, label, params):

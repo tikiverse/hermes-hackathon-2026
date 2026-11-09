@@ -32,6 +32,8 @@ class FakeLLM:
         self.calls.append({"messages": messages, "provider": provider, "model": model})
         if model == "broken":
             raise RuntimeError("model unavailable")
+        if model == "thinker":
+            return Result(text="", model=model, provider=provider or "main")
         return Result(text=f"answer from {model}", model=model, provider=provider or "main")
 
 
@@ -331,3 +333,11 @@ def test_only_the_same_model_picked_asks_nothing(make):
     out = plugin.cmd_eval("deepseek/deepseek-r1")
     assert plugin.llm.calls == []
     assert "Pick a different model" in out
+
+
+def test_empty_answer_is_an_error_with_a_reason(make):
+    plugin = make()
+    out = plugin.cmd_eval("thinker")
+    answer = log(plugin)[0]["answers"][1]
+    assert answer["error"].startswith("empty answer")
+    assert "[error] empty answer" in out
