@@ -34,7 +34,8 @@ def add_session(conn, row, now):
 
 
 def add_run(path):
-    answers = [schema.answer("A", "m-new", "ok"), schema.answer("B", "m-rival", "better", latency_ms=900)]
+    answers = [schema.answer("A", "m-new", "ok"), schema.answer("B", "m-rival", "better", latency_ms=900),
+               schema.answer("C", HF_PATH, "local", latency_ms=9000)]
     quickeval_log.EvalLog(path).append(schema.run_record("ask newest", answers, session_id="newest"))
 
 
@@ -91,9 +92,9 @@ def test_rail_filters_narrow_the_chat_list(page):
 
 
 def test_compare_pick_winner_and_leaderboard(page):
-    page.click(".ep-link:has-text('Compare 2 answers')")
+    page.click(".ep-link:has-text('Compare 3 answers')")
     page.wait_for_selector(".ep-cgrid .ep-col")
-    assert page.locator(".ep-cgrid .ep-col").count() == 2
+    assert page.locator(".ep-cgrid .ep-col").count() == 3
     page.keyboard.press("b")
     assert page.locator(".ep-col.won").count() == 1
     page.click(".ep-bar .ep-btn.pri")
@@ -123,6 +124,18 @@ def test_no_null_text_anywhere(page):
         page.click(f".ep-head .ep-segb:has-text('{tab}')")
         page.wait_for_timeout(300)
         assert "null" not in page.inner_text(".quickeval")
+
+
+SIDEWAYS = "[...document.querySelectorAll('.quickeval *')].filter(e => e.scrollWidth > e.clientWidth + 1"
+SIDEWAYS += " && ['auto', 'scroll'].includes(getComputedStyle(e).overflowX)).map(e => e.className)"
+
+
+def test_no_tab_scrolls_sideways_on_phone(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    for tab in ("Review", "Compare", "Leaderboard"):
+        page.click(f".ep-head .ep-segb:has-text('{tab}')")
+        page.wait_for_timeout(300)
+        assert page.evaluate(SIDEWAYS) == [], tab
 
 
 def test_phone_picker_opens_and_closes(page):

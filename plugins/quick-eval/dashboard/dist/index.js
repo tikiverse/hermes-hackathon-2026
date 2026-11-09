@@ -421,7 +421,7 @@ function setWinner(w) {
 
 function hasLabel(label, a) { return a.label === label }
 function isRevealed() { return !EP.cmp.blind || !!(judgmentOf(cmpRun()) && judgmentOf(cmpRun()).winner) }
-function answerName(a) { return isRevealed() ? pick(a.model, "unknown") : `Model ${a.label}` }
+function answerName(a) { return isRevealed() ? shortModel(pick(a.model, "unknown")) : `Model ${a.label}` }
 
 function runButton(run, i) {
   const j = run.judgment
@@ -515,7 +515,7 @@ function renderCompare() {
 
 const BOARD_COLS = [["Model", boardModel], ["Wins", boardWins], ["Win %", boardWinRate], ["Answers", boardAnswers]]
 
-function boardModel(r) { return r.model }
+function boardModel(r) { return shortModel(r.model) }
 function boardWins(r) { return `${r.wins} / ${r.contests}` }
 function boardWinRate(r) { return pct(r.win_rate) }
 function boardAnswers(r) { return String(r.answers) }

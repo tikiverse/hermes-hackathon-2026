@@ -36,7 +36,7 @@
 @media (pointer: coarse) { .quickeval { --ep-tap: 44px; } }
 .quickeval-standalone { margin: 0; background-color: #0d0f12; font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif; }
 .quickeval-standalone .quickeval { height: 100dvh; background-color: var(--ep-bg); }
-.quickeval * { box-sizing: border-box; }
+.quickeval * { box-sizing: border-box; overflow-wrap: anywhere; }
 .quickeval button, .quickeval input, .quickeval select, .quickeval textarea { font: inherit; color: inherit; }
 .quickeval button { cursor: pointer; }
 
