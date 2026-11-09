@@ -127,8 +127,10 @@ def test_no_null_text_anywhere(page):
         assert "null" not in page.inner_text(".quickeval")
 
 
-SIDEWAYS = "[...document.querySelectorAll('.quickeval *')].filter(e => e.scrollWidth > e.clientWidth + 1"
-SIDEWAYS += " && ['auto', 'scroll'].includes(getComputedStyle(e).overflowX)).map(e => e.className)"
+DECK = '.ep-now.multi .ep-cgrid'  # why: the phone answer deck scrolls sideways on purpose
+SIDEWAYS = (f"[...document.querySelectorAll('.quickeval *')].filter(e => !e.matches('{DECK}')"
+            " && e.scrollWidth > e.clientWidth + 1"
+            " && ['auto', 'scroll'].includes(getComputedStyle(e).overflowX)).map(e => e.className)")
 
 
 def test_no_tab_scrolls_sideways_on_phone(page):
@@ -175,3 +177,13 @@ def test_several_answers_sit_in_one_full_width_row_on_desktop(page):
     stage = page.eval_on_selector(".ep-stage", "e => e.clientWidth - 48")
     now = page.eval_on_selector(".ep-now", "e => e.getBoundingClientRect().width")
     assert now >= stage
+    height = page.eval_on_selector(".ep-stage", "e => e.clientHeight - 46")
+    assert page.eval_on_selector(".ep-now", "e => e.getBoundingClientRect().height") >= height
+
+
+def test_several_answers_are_a_swipe_deck_on_phone(page):
+    """why: Shaun: stacked answers meant scrolling far down on an iPhone."""
+    page.set_viewport_size({"width": 390, "height": 844})
+    tops = page.eval_on_selector_all(".ep-now .ep-col", "cs => cs.map(c => Math.round(c.getBoundingClientRect().top))")
+    assert len(set(tops)) == 1
+    assert page.eval_on_selector(".ep-now .ep-cgrid", "g => getComputedStyle(g).scrollSnapType").startswith("x")

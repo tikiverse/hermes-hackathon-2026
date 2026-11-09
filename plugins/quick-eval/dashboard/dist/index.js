@@ -322,13 +322,13 @@ function answerMeta(a) { return a.latency_ms == null ? "the reply you saw" : sec
 
 function answerBody(a) {
   if (a.error) return h("span", { class: "ep-col-b ep-err", text: "⚠ " + a.error })
-  return h("span", { class: "ep-col-b", text: pick(a.text, "(no text response)") })
+  return h("span", { class: "ep-col-b", text: pick((a.text || "").trim(), "(no text response)") })
 }
 
 function answerCol(a) {
   const good = isGood(a.label)
   return h("button", { class: "ep-col" + (good ? " won" : ""), onclick: toggleGood.bind(null, a.label),
-    "aria-pressed": String(good), title: `${a.label} is good` },
+    "aria-pressed": String(good) },
     h("span", { class: "ep-col-h" }, h("span", { class: "ep-label", text: a.label }), h("b", { text: answerName(a) }),
       h("span", { class: "ep-col-meta", text: answerMeta(a) })), answerBody(a))
 }
@@ -337,12 +337,21 @@ function gridEl(answers) {
   return h("div", { class: "ep-cgrid", style: `--ep-cols: ${Math.min(answers.length, 4)}` }, answers.map(answerCol))
 }
 
+function toggleOpen(e) { e.currentTarget.classList.toggle("open") }
+
+/* why: on a phone the prompt above a swipe deck shows 2 lines; tap shows all */
+function promptEl(text) {
+  const el = bubble("user", "You", text)
+  el.lastChild.addEventListener("click", toggleOpen)
+  return el
+}
+
 function focusEl(t) {
   const answers = answersOf(t)
   const hint = answers.length > 1 ? null : h("p", { class: "ep-hint", text: "Run /eval in Hermes to compare this answer with other models." })
   return h("section", { class: "ep-now" + (answers.length > 1 ? " multi" : ""), "aria-label": "Turn under review" },
     h("span", { class: "ep-now-label", text: `TURN ${t.index + 1} · reviewing · ${ago(t.ts)}` }),
-    bubble("user", "You", t.prompt), chipsEl(t), gridEl(answers), hint, expectedEl())
+    promptEl(t.prompt), chipsEl(t), gridEl(answers), hint, expectedEl())
 }
 
 function turnEl(t, i) { return i === EP.sel ? focusEl(t) : pastEl(t, i) }
