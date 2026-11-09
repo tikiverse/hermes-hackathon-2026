@@ -316,3 +316,18 @@ def test_local_model_path_shows_its_repo_name(module):
     answer = {"label": "B", "model": path, "text": "hi", "latency_ms": 5}
     assert module.evals.answer_lines(answer)[0] == "── B · Qwen3-4bit · 5 ms ──"
     assert module.evals.Target("local", path, "Mac mini").describe() == "local (Qwen3-4bit via Mac mini)"
+
+
+def test_model_that_wrote_the_reply_is_not_asked_again(make):
+    plugin = make()
+    out = plugin.cmd_eval("deepseek/deepseek-r1 claude")
+    assert [c["model"] for c in plugin.llm.calls] == ["anthropic/claude-sonnet-5-5"]
+    assert "Skipped deepseek/deepseek-r1: it wrote the reply you saw." in out
+    assert [a["label"] for a in log(plugin)[0]["answers"]] == ["A", "B"]
+
+
+def test_only_the_same_model_picked_asks_nothing(make):
+    plugin = make()
+    out = plugin.cmd_eval("deepseek/deepseek-r1")
+    assert plugin.llm.calls == []
+    assert "Pick a different model" in out

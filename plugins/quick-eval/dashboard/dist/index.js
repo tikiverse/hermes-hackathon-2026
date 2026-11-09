@@ -20,7 +20,7 @@ function freshState() {
     root: null, api: "", fetchJSON: null, els: {}, tab: "review", range: "all", q: "", stats: {}, toast: "",
     toastTimer: null, pollTimer: null, sessions: [], sessionId: null, live: true, session: null, turns: [], sel: 0,
     runs: [], draft: emptyDraft(), dirty: false, lastMsgCount: 0, board: [],
-    cmp: { runs: [], sel: 0, draft: emptyPick(), blind: false, unjudged: false, dirty: false },
+    cmp: { runs: [], sel: 0, draft: emptyPick(), unjudged: false, dirty: false },
   }
 }
 
@@ -420,8 +420,7 @@ function setWinner(w) {
 }
 
 function hasLabel(label, a) { return a.label === label }
-function isRevealed() { return !EP.cmp.blind || !!(judgmentOf(cmpRun()) && judgmentOf(cmpRun()).winner) }
-function answerName(a) { return isRevealed() ? shortModel(pick(a.model, "unknown")) : `Model ${a.label}` }
+function answerName(a) { return shortModel(pick(a.model, "unknown")) }
 
 function runButton(run, i) {
   const j = run.judgment
@@ -455,13 +454,10 @@ function gridEl(run) {
   return h("div", { class: "ep-cgrid", style: `--ep-cols: ${Math.min(run.answers.length, 4)}` }, run.answers.map(answerCol))
 }
 
-function onBlind(e) { EP.cmp.blind = e.target.checked; render() }
-
 function cmpStageEl(run) {
   if (!run) return h("main", { class: "ep-stage" }, h("div", { class: "ep-empty", text: "Nothing to compare yet. In Hermes: ask something, then /eval." }))
-  const blind = h("label", { class: "ep-check" }, h("input", { type: "checkbox", checked: EP.cmp.blind, onchange: onBlind }), "blind")
   return h("main", { class: "ep-stage" }, h("div", { class: "ep-cwrap" },
-    h("div", { class: "ep-prompt" }, h("div", { class: "ep-prompt-h" }, h("span", { class: "ep-now-label", text: "PROMPT" }), grow(), blind),
+    h("div", { class: "ep-prompt" }, h("div", { class: "ep-prompt-h" }, h("span", { class: "ep-now-label", text: "PROMPT" })),
       h("div", { class: "ep-prompt-t", text: run.prompt })), gridEl(run)))
 }
 

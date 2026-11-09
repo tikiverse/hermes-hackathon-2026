@@ -112,13 +112,6 @@ def test_review_verdict_saves_a_judgment(page):
     assert [j["verdict"] for j in judgments(page.evals_path)] == ["pass"]
 
 
-def test_blind_mode_hides_models_until_judged(page):
-    page.click(".ep-head .ep-segb:has-text('Compare')")
-    page.wait_for_selector(".ep-cgrid .ep-col")
-    page.check(".ep-prompt .ep-check input")
-    assert page.inner_text(".ep-cgrid .ep-col:nth-child(2) .ep-col-h b") == "Model B"
-
-
 def test_no_null_text_anywhere(page):
     for tab in ("Review", "Compare", "Leaderboard"):
         page.click(f".ep-head .ep-segb:has-text('{tab}')")

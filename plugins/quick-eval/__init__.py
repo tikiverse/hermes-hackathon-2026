@@ -104,7 +104,11 @@ class QuickEval:
         targets = self.targets_for(names, config)
         if isinstance(targets, str) or not targets:
             return targets or "No models picked."
-        return self.ask(targets, settings.params(config))
+        kept, skipped = evals.split_same(targets, self.last_turn.get("model"))
+        note = evals.skipped_note(skipped)
+        if not kept:
+            return f"{note} Pick a different model."
+        return "\n".join(filter(None, [note, self.ask(kept, settings.params(config))]))
 
     def ensure_trusted(self):
         config = self.config.load()

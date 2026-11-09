@@ -81,7 +81,7 @@ The first start copies `docker/config.yaml` into a `hermes-home` volume. Hermes'
 | Tab | Use | Keys |
 |---|---|---|
 | Review | your chats (current one pinned); grade a turn pass/fail, add a note or expected answer | `j`/`k`, `p`/`f`, `Cmd+Enter` |
-| Compare | one prompt, a column per model; click the best, blind mode, save & next unjudged | `j`/`k`, `a`-`e`, `t`, `n`, `Cmd+Enter` |
+| Compare | one prompt, a column per model; click the best, save & next unjudged | `j`/`k`, `a`-`e`, `t`, `n`, `Cmd+Enter` |
 | Leaderboard | per model: wins and win % over the runs you judged | |
 
 ### Your evals are a plain file

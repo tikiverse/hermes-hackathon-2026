@@ -49,6 +49,17 @@ def resolve_targets(names: list[str], aliases: dict) -> list[Target]:
     return [target_for(name, aliases) for name in names]
 
 
+def split_same(targets, model):
+    """why: asking the model that wrote answer A again compares it with itself."""
+    kept = [t for t in targets if t.model != model]
+    return kept, [t for t in targets if t.model == model]
+
+
+def skipped_note(skipped):
+    names = ", ".join(t.name for t in skipped)
+    return f"Skipped {names}: it wrote the reply you saw." if skipped else ""
+
+
 def call_model(complete, prompt, target, params):
     result = complete([{"role": "user", "content": prompt}], provider=target.provider, model=target.model,
                       purpose="quick-eval", **params)
