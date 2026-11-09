@@ -162,3 +162,10 @@ def test_routes():
     assert routes.handle("GET", "/leaderboard", {}, None)[1]["rows"][0]["model"] == "m1"
     kind, text = routes.handle("GET", "/export", {}, None)[1]
     assert kind == "text" and '"type": "judgment"' in text
+
+
+def test_frame_page_inlines_the_ui_and_the_bridge():
+    status, payload = routes.handle("GET", "/frame", {}, None)
+    html = payload["html"]
+    assert status == 200 and "QuickEvalUI" in html and "quickeval-rpc" in html
+    assert html.count("</script>") == 2

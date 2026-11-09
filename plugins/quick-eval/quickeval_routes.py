@@ -1,4 +1,5 @@
 """why: one dispatcher serves both the Hermes dashboard router and the standalone server."""
+import quickeval_frame as frame
 import quickeval_reports as reports
 import quickeval_sessions as sessions
 
@@ -31,6 +32,10 @@ def get_leaderboard(_parts, query, _body):
     return {"rows": reports.leaderboard(query)}
 
 
+def get_frame(_parts, _query, _body):
+    return {"html": frame.frame_html()}
+
+
 def get_export(_parts, _query, _body):
     return ("text", reports.log().raw())
 
@@ -38,7 +43,7 @@ def get_export(_parts, _query, _body):
 ROUTES = {
     ("GET", "sessions"): get_sessions, ("GET", "latest"): get_latest, ("GET", "runs"): get_runs,
     ("POST", "judgments"): post_judgment, ("GET", "stats"): get_stats, ("GET", "leaderboard"): get_leaderboard,
-    ("GET", "export"): get_export,
+    ("GET", "export"): get_export, ("GET", "frame"): get_frame,
 }
 STATUS = ((KeyError, 404), (ValueError, 400), (TypeError, 400), (FileNotFoundError, 500))
 HANDLED = tuple(kind for kind, _ in STATUS)
