@@ -1,61 +1,51 @@
 #!/bin/sh
-# quick-eval demo in one line: two small local models (no account, no key) in a Hermes home of its own; yours is
-# untouched. Installs what's missing: Hermes, Ollama, the models (~1.5 GB). Rerun anytime: it updates the plugin.
-# Usage: curl -fsSL <raw url of this file> | sh   (env: QE_BRANCH, QE_DIR, QE_REPO, QE_DEMO_HOME, QE_NO_LAUNCH)
+# quick-eval demo in one line, all inside Docker: Hermes plus two small local models (~1.5 GB, CPU), no account, no key.
+# Nothing is installed on your machine. Remove every trace: same line with `QE_CLEAN=1 sh` at the end.
+# Usage: curl -fsSL <raw url of this file> | sh   (env: QE_SRC = build source, QE_CLEAN = remove the demo, QE_TTY = chat input)
 set -eu
 
-branch=${QE_BRANCH:-quick-eval-ui}
-dir=${QE_DIR:-$HOME/.cache/quick-eval-pr}
-repo=${QE_REPO:-https://github.com/tikiverse/hermes-hackathon-2026}
-home=${QE_DEMO_HOME:-$HOME/.hermes-quick-eval-demo}
-PATH="$HOME/.local/bin:$PATH"
+src=${QE_SRC:-https://github.com/tikiverse/hermes-hackathon-2026.git#quick-eval-ui}
+image=quick-eval-demo
+ollama=quick-eval-ollama
+models=quick-eval-models
+home=quick-eval-home
+url=https://raw.githubusercontent.com/tikiverse/hermes-hackathon-2026/quick-eval-ui/scripts/demo.sh
 
 say() { printf '\n==> %s\n' "$*"; }
 
-get_code() {
-  [ -d "$dir" ] || git clone -q "$repo" "$dir"
-  git -C "$dir" fetch -q origin "$branch"
-  git -C "$dir" checkout -q -B "$branch" FETCH_HEAD
+need_docker() {
+  docker info >/dev/null 2>&1 && return
+  echo "Needs Docker running: https://docs.docker.com/get-docker/ then rerun this line." >&2; exit 1
 }
 
-need_hermes() {
-  command -v hermes >/dev/null && return
-  say "Installing Hermes (official installer, setup questions skipped)"
-  curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --skip-setup
+clean() {
+  docker rm -f "$ollama" >/dev/null 2>&1 || true
+  docker volume rm -f "$models" "$home" >/dev/null
+  docker rmi -f "$image" >/dev/null 2>&1 || true
+  say "Removed the demo: image, container, volumes."
 }
 
-need_ollama() {
-  command -v ollama >/dev/null && return
-  say "Installing Ollama"
-  if command -v brew >/dev/null; then brew install ollama
-  elif [ "$(uname)" = Linux ]; then curl -fsSL https://ollama.com/install.sh | sh
-  else echo "Install Ollama from https://ollama.com/download, then rerun this line." >&2; exit 1; fi
+build() {
+  say "Building the Hermes image (first run takes a few minutes)"
+  docker build -q -t "$image" "$src" >/dev/null
 }
 
 start_ollama() {
-  ollama list >/dev/null 2>&1 && return
-  (ollama serve >/dev/null 2>&1 &)
-  for _ in 1 2 3 4 5 6 7 8 9 10; do ollama list >/dev/null 2>&1 && return; sleep 1; done
-  echo "Ollama did not start. Run 'ollama serve', then rerun this line." >&2; exit 1
+  docker ps -q -f name="^$ollama$" | grep -q . && return
+  docker run -d --rm --name "$ollama" -v "$models:/root/.ollama" ollama/ollama:0.40.11 >/dev/null
 }
 
-pull_models() {
-  for model in $(sed -n 's/^# pull: //p' "$dir/demo/config.yaml"); do ollama pull "$model"; done
+chat() {
+  docker run -it --rm --network "container:$ollama" -v "$home:/data/hermes" "$image" <"${QE_TTY:-/dev/tty}"
 }
 
-setup_home() {
-  mkdir -p "$home"
-  [ -f "$home/config.yaml" ] || cp "$dir/demo/config.yaml" "$home/config.yaml"
-  HERMES_HOME="$home" "$dir/scripts/link-plugins.sh" quick-eval </dev/null
-}
+stop_ollama() { docker stop "$ollama" >/dev/null 2>&1 || true; }
 
-launch() {
-  say "Ready. Ask: What happened at Tiananmen Square in 1989?   Then: /quick-eval   (later: HERMES_HOME=$home hermes)"
-  [ -n "${QE_NO_LAUNCH:-}" ] && return
-  cd "$home" && HERMES_HOME="$home" exec hermes chat --ignore-rules </dev/tty
+# why: under `curl | sh` stdin is this script; one call on the last line means sh has read it all before any step runs
+main() {
+  need_docker
+  [ -n "${QE_CLEAN:-}" ] && { clean; return; }
+  build; start_ollama; chat || true; stop_ollama
+  say "Rerun anytime. Remove everything: curl -fsSL $url | QE_CLEAN=1 sh"
 }
-
-# why: under `curl | sh` stdin is this script; one call on the last line means sh has read it all before any
-# step runs, so a step that reads stdin cannot eat the rest
-main() { get_code; need_hermes; need_ollama; start_ollama; pull_models; setup_home; launch; }
 main

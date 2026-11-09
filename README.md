@@ -20,7 +20,7 @@ No Hermes yet: install it, pick a model provider, then run the line above.
 curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 hermes setup
 ```
-Just try it (Mac or Linux; no account, no key, your Hermes untouched): installs what's missing, two small local models (~1.5 GB), opens Hermes.
+Just try it, needs only Docker (no account, no key, nothing installed): Hermes + two small local models (~1.5 GB, CPU) in containers, opens Hermes chat. Remove it all: same line with `QE_CLEAN=1 sh`.
 ```
 curl -fsSL https://raw.githubusercontent.com/tikiverse/hermes-hackathon-2026/quick-eval-ui/scripts/demo.sh | sh
 ```

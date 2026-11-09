@@ -4,7 +4,6 @@ import re
 import subprocess
 from pathlib import Path
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -27,26 +26,27 @@ def test_pull_line_names_every_model_the_demo_uses():
     assert sorted(pull_line()) == sorted([config["model"]["default"], *(a["model"] for a in aliases)])
 
 
-def fake_bin(tmp_path):
+def fake_docker(tmp_path):
+    """why: record every docker call; `ps` reports nothing running, so the script starts Ollama."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
-    (bin_dir / "ollama").write_text(FAKE_OLLAMA)
-    (bin_dir / "ollama").chmod(0o755)
+    (bin_dir / "docker").write_text('#!/bin/sh\necho "$*" >> "$CALLS"\n')
+    (bin_dir / "docker").chmod(0o755)
     return bin_dir
 
 
-@pytest.mark.hermes
-def test_demo_sets_up_its_own_home_and_reruns_cleanly(tmp_path):
-    src = tmp_path / "src"
-    git("clone", "-q", str(ROOT), str(src), cwd=tmp_path)
-    git("checkout", "-q", "-b", "try", cwd=src)
-    home = tmp_path / "demo-home"
-    env = {**os.environ, "HOME": str(tmp_path), "PATH": f"{fake_bin(tmp_path)}:{os.environ['PATH']}",
-           "PULLS": str(tmp_path / "pulls"), "QE_REPO": str(src), "QE_BRANCH": "try", "QE_DIR": str(tmp_path / "copy"),
-           "QE_DEMO_HOME": str(home), "QE_NO_LAUNCH": "1"}
-    for _ in range(2):
-        with SCRIPT.open() as piped:  # why: same as `curl | sh`, where stdin is the script itself
-            subprocess.run(["sh"], stdin=piped, env=env, check=True, capture_output=True, timeout=180)
-    assert (home / "plugins" / "quick-eval").resolve() == (tmp_path / "copy" / "plugins" / "quick-eval").resolve()
-    assert yaml.safe_load((home / "config.yaml").read_text())["model"]["default"] == "qwen2.5:0.5b"
-    assert (tmp_path / "pulls").read_text().split() == pull_line() * 2
+def run_demo(tmp_path, **extra):
+    calls = tmp_path / "calls"
+    env = {**os.environ, "PATH": f"{fake_docker(tmp_path)}:{os.environ['PATH']}", "CALLS": str(calls),
+           "QE_SRC": "src", "QE_TTY": "/dev/null", **extra}
+    with SCRIPT.open() as piped:  # why: same as `curl | sh`, where stdin is the script itself
+        subprocess.run(["sh"], stdin=piped, env=env, check=True, capture_output=True, timeout=30)
+    return [line.split()[0] for line in calls.read_text().splitlines()]
+
+
+def test_demo_runs_everything_in_docker(tmp_path):
+    assert run_demo(tmp_path) == ["info", "build", "ps", "run", "run", "stop"]
+
+
+def test_clean_removes_the_container_volumes_and_image(tmp_path):
+    assert run_demo(tmp_path, QE_CLEAN="1") == ["info", "rm", "volume", "rmi"]
