@@ -11,3 +11,4 @@ repo=${QE_REPO:-https://github.com/tikiverse/hermes-hackathon-2026}
 git -C "$dir" fetch -q origin "$branch"
 git -C "$dir" checkout -q -B "$branch" FETCH_HEAD
 "$dir/scripts/link-plugins.sh" quick-eval
+echo "Installed. Next: run hermes (restart it if open), ask anything, then /quick-eval. /quick-eval open shows the review page."
