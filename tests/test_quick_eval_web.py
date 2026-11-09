@@ -51,10 +51,10 @@ def test_grading_a_chat_turn_makes_one_run_and_appends_judgments():
     turn = sessions.get_turns("s1")["turns"][0]
     body = {"session_id": "s1", "message_id": turn["message_id"], "prompt": turn["prompt"], "response": "4",
             "model": "m0"}
-    first = reports.save_judgment({**body, "verdict": "pass"})
+    first = reports.save_judgment({**body, "good": ["A"]})
     second = reports.save_judgment({**body, "note": "ok"})
     assert first["id"] == second["id"]
-    assert second["judgment"]["verdict"] == "pass"
+    assert second["judgment"]["good"] == ["A"]
     assert second["judgment"]["note"] == "ok"
     types = [json.loads(line)["type"] for line in reports.log().raw().splitlines()]
     assert types == ["run", "judgment", "judgment"]
@@ -63,8 +63,6 @@ def test_grading_a_chat_turn_makes_one_run_and_appends_judgments():
 
 def test_validation():
     run = two_model_run()
-    with pytest.raises(ValueError):
-        reports.save_judgment({"run_id": run["id"], "verdict": "maybe"})
     with pytest.raises(ValueError):
         reports.save_judgment({"run_id": run["id"], "winner": "Z"})
     with pytest.raises(ValueError):
@@ -133,6 +131,14 @@ def test_a_judgment_from_before_good_existed_still_counts():
                           "verdict": None, "note": "", "expected": ""})
     rows = {r["model"]: r for r in reports.leaderboard({})}
     assert (rows["m1"]["good"], rows["m0"]["good"]) == (1, 0)
+    assert reports.list_runs({})[0]["judgment"]["good"] == ["B"]
+
+
+def test_an_old_pass_fail_verdict_reads_as_good():
+    solo = reports.log().append(schema.run_record("solo", [schema.answer("A", "m0", "x")]))
+    reports.log().append({"v": 1, "type": "judgment", "id": "j_v", "ts": 2, "run_id": solo["id"], "winner": None,
+                          "verdict": "pass", "note": "", "expected": ""})
+    assert reports.list_runs({})[0]["judgment"]["good"] == ["A"]
 
 
 def test_stats():

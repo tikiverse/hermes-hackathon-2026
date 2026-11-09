@@ -45,7 +45,7 @@
 .ep-brand { font-weight: 650; white-space: nowrap; }
 .ep-grow { flex: 1; }
 .ep-meta { color: var(--ep-muted); font: 12px var(--ep-mono); white-space: nowrap; }
-.ep-railbtn { display: none; }
+.ep-head .ep-railbtn { display: none; }
 
 /* why: shared controls */
 .ep-btn { min-height: var(--ep-tap); display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; background-color: var(--ep-panel); border: 1px solid var(--ep-line); border-radius: var(--ep-r-sm); color: var(--ep-fg); text-decoration: none; white-space: nowrap; transition-property: border-color, scale; transition-duration: var(--ep-t); }
@@ -56,15 +56,11 @@
 .ep-segb + .ep-segb { border-left: 1px solid var(--ep-line); }
 .ep-segb:hover { color: var(--ep-fg); }
 .ep-segb.on { background-color: var(--ep-raise); color: var(--ep-fg); }
-.ep-segb.pass.on { background-color: color-mix(in srgb, var(--ep-pass) 16%, transparent); color: var(--ep-pass); }
-.ep-segb.fail.on { background-color: color-mix(in srgb, var(--ep-fail) 16%, transparent); color: var(--ep-fail); }
 .quickeval kbd { font: 11px var(--ep-mono); color: var(--ep-muted); border: 1px solid var(--ep-line); border-radius: 4px; padding: 0 4px; }
 .ep-btn.pri kbd { color: inherit; border-color: currentColor; opacity: .7; }
 .ep-input { min-height: var(--ep-tap); width: 100%; background-color: var(--ep-bg); color: var(--ep-fg); border: 1px solid var(--ep-line); border-radius: var(--ep-r-sm); padding: 6px 10px; }
 textarea.ep-input { resize: vertical; margin-top: 8px; }
 .ep-input:focus, .ep-segb:focus-visible, .ep-btn:focus-visible, .ep-item:focus-visible, .ep-col:focus-visible { outline: 2px solid var(--ep-accent); outline-offset: -1px; }
-.ep-check { display: inline-flex; align-items: center; gap: 6px; min-height: var(--ep-tap); color: var(--ep-muted); font-size: 12px; white-space: nowrap; cursor: pointer; }
-.ep-check input { accent-color: var(--ep-accent); margin: 0; }
 .ep-label { font: 600 11px var(--ep-mono); color: var(--ep-accent); border: 1px solid var(--ep-accent); border-radius: 4px; padding: 0 5px; flex: none; }
 .ep-hint { margin: 0; font-size: 12px; color: var(--ep-muted); }
 .ep-unsaved { width: 7px; height: 7px; border-radius: 50%; background-color: currentColor; }
@@ -116,13 +112,8 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
 .ep-pre { margin: 0; padding: 10px; border-top: 1px solid var(--ep-line); font: 12px/1.5 var(--ep-mono); white-space: pre-wrap; max-height: 320px; overflow-y: auto; }
 .ep-fold { font-size: 13px; color: var(--ep-muted); }
 .ep-fold > summary { cursor: pointer; }
-.ep-link { align-self: flex-start; }
 
-/* why: Compare: prompt card over equal answer columns; click a column to pick it */
-.ep-cwrap { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
-.ep-prompt { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid var(--ep-line); border-radius: var(--ep-r); background-color: var(--ep-tint); }
-.ep-prompt-h { display: flex; align-items: center; }
-.ep-prompt-t { white-space: pre-wrap; }
+/* why: answers to the turn under review: equal columns; tap one to mark it good */
 .ep-cgrid { display: grid; grid-template-columns: repeat(var(--ep-cols, 2), minmax(0, 1fr)); gap: 12px; align-items: stretch; }
 .ep-col { display: flex; flex-direction: column; min-width: 0; padding: 0; text-align: left; border: 1px solid var(--ep-line); border-radius: var(--ep-r-sm); background-color: var(--ep-panel); color: var(--ep-fg); transition-property: border-color, box-shadow; transition-duration: var(--ep-t); }
 .ep-col:hover { border-color: var(--ep-muted); }
@@ -162,7 +153,7 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
   .ep-head > .ep-grow { display: none; }
   .ep-tabs { flex: 1; min-width: 0; }
   .ep-tabs .ep-segb { flex: 1 1 auto; min-width: 0; white-space: nowrap; }
-  .ep-railbtn { display: flex; flex-basis: 100%; min-width: 0; max-width: 100%; justify-content: space-between; min-height: 44px; text-align: left; }
+  .ep-head .ep-railbtn { display: flex; flex-basis: 100%; min-width: 0; max-width: 100%; justify-content: space-between; min-height: 44px; text-align: left; }
   .ep-railbtn-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .ep-chev { color: var(--ep-muted); transition-property: rotate; transition-duration: var(--ep-t); }
   .ep-head.rail-open .ep-chev { rotate: 180deg; }

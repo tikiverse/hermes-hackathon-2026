@@ -90,44 +90,38 @@ def test_rail_filters_narrow_the_chat_list(page):
     sync_api.expect(rail_titles(page)).to_have_text(["Current chat", "Older chat"])
 
 
-def test_compare_pick_winner_and_leaderboard(page):
-    page.click(".ep-link:has-text('Compare 3 answers')")
-    page.wait_for_selector(".ep-cgrid .ep-col")
-    assert page.locator(".ep-cgrid .ep-col").count() == 3
+def test_mark_one_answer_good_and_leaderboard(page):
+    assert page.locator(".ep-now .ep-cgrid .ep-col").count() == 3
     page.keyboard.press("b")
     assert page.locator(".ep-col.won").count() == 1
     page.click(".ep-bar .ep-btn.pri")
-    page.wait_for_selector(".ep-rail-list .ep-label:has-text('B')")
+    page.wait_for_selector(".ep-toast:has-text('good: B')")
     assert [j["winner"] for j in judgments(page.evals_path)] == ["B"]
     page.click(".ep-head .ep-segb:has-text('Leaderboard')")
     page.wait_for_selector(".ep-table tbody tr")
     assert page.inner_text(".ep-table tbody tr:first-child td:first-child") == "m-rival"
 
 
-def test_compare_marks_several_answers_good(page):
-    page.click(".ep-link:has-text('Compare 3 answers')")
-    page.wait_for_selector(".ep-cgrid .ep-col")
+def test_several_answers_can_be_good(page):
     page.click(".ep-cgrid .ep-col >> nth=1")
     page.click(".ep-cgrid .ep-col >> nth=2")
     assert page.locator(".ep-col.won").count() == 2
     page.click(".ep-bar .ep-btn.pri")
-    page.wait_for_selector(".ep-rail-list .ep-label:has-text('B C')")
+    page.wait_for_selector(".ep-toast:has-text('good: B C')")
     saved = judgments(page.evals_path)[-1]
     assert (saved["good"], saved["winner"]) == (["B", "C"], "tie")
-    page.click(".ep-head .ep-segb:has-text('Leaderboard')")
-    page.wait_for_selector(".ep-table tbody tr")
-    assert "Good %" in page.text_content(".ep-table thead")
 
 
-def test_review_verdict_saves_a_judgment(page):
-    page.keyboard.press("p")
+def test_single_answer_turn_is_good_or_not(page):
+    page.click(".ep-rail-list .ep-item:has-text('Older chat')")
+    page.click(".ep-bar .ep-segb:has-text('Not good')")
     page.click(".ep-bar .ep-btn.pri")
-    page.wait_for_selector(".ep-toast.on")
-    assert [j["verdict"] for j in judgments(page.evals_path)] == ["pass"]
+    page.wait_for_selector(".ep-toast:has-text('good: none')")
+    assert [(j["good"], j["winner"]) for j in judgments(page.evals_path)] == [([], "none")]
 
 
 def test_no_null_text_anywhere(page):
-    for tab in ("Review", "Compare", "Leaderboard"):
+    for tab in ("Review", "Leaderboard"):
         page.click(f".ep-head .ep-segb:has-text('{tab}')")
         page.wait_for_timeout(300)
         assert "null" not in page.inner_text(".quickeval")
@@ -139,7 +133,7 @@ SIDEWAYS += " && ['auto', 'scroll'].includes(getComputedStyle(e).overflowX)).map
 
 def test_no_tab_scrolls_sideways_on_phone(page):
     page.set_viewport_size({"width": 390, "height": 844})
-    for tab in ("Review", "Compare", "Leaderboard"):
+    for tab in ("Review", "Leaderboard"):
         page.click(f".ep-head .ep-segb:has-text('{tab}')")
         page.wait_for_timeout(300)
         assert page.evaluate(SIDEWAYS) == [], tab
@@ -154,7 +148,7 @@ def test_phone_picker_opens_and_closes(page):
     assert not page.is_visible(".ep-rail")
     assert page.evaluate("document.documentElement.scrollWidth") <= 390
     assert page.evaluate("(s => s.scrollWidth - s.clientWidth)(document.querySelector('.ep-stage'))") <= 1
-    assert page.is_visible(".ep-who b:has-text('Long-Model-4bit')")
+    assert page.is_visible(".ep-col-h b:has-text('Long-Model-4bit')")
 
 
 
@@ -188,9 +182,15 @@ def test_desktop_frame_works_through_the_parent_bridge(page):
     """why: Hermes Desktop runs the UI in a sandboxed data: frame; every call must go through postMessage."""
     page.evaluate(DESKTOP_PARENT)
     frame = page.frame_locator("iframe")
-    frame.locator(".ep-head .ep-segb:has-text('Compare')").click()
     frame.locator(".ep-cgrid .ep-col").nth(1).click()
     frame.locator(".ep-bar .ep-btn.pri").click()
-    frame.locator(".ep-rail-list .ep-label:has-text('B')").wait_for()
+    frame.locator(".ep-toast:has-text('good: B')").wait_for()
     assert judgments(page.evals_path)[-1]["good"] == ["B"]
     assert frame.locator("a:has-text('Export JSONL')").count() == 0
+
+
+def test_chat_picker_button_is_phone_only(page):
+    page.set_viewport_size({"width": 1440, "height": 900})
+    assert not page.is_visible(".ep-railbtn")
+    page.set_viewport_size({"width": 390, "height": 844})
+    assert page.is_visible(".ep-railbtn")

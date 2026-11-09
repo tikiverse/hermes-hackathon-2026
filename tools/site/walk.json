@@ -15,19 +15,6 @@
    "expect": ".ep-bar, .ep-table, .ep-empty"
   },
   {
-   "name": "phone-compare",
-   "viewport": "phone",
-   "actions": [
-    {
-     "click": ".ep-head .ep-segb:has-text('Compare')"
-    },
-    {
-     "wait": 600
-    }
-   ],
-   "expect": ".ep-bar, .ep-table, .ep-empty"
-  },
-  {
    "name": "phone-leaderboard",
    "viewport": "phone",
    "actions": [
@@ -59,19 +46,6 @@
    "actions": [
     {
      "click": ".ep-head .ep-segb:has-text('Review')"
-    },
-    {
-     "wait": 600
-    }
-   ],
-   "expect": ".ep-bar, .ep-table, .ep-empty"
-  },
-  {
-   "name": "phone-small-compare",
-   "viewport": "phone-small",
-   "actions": [
-    {
-     "click": ".ep-head .ep-segb:has-text('Compare')"
     },
     {
      "wait": 600

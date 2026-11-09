@@ -45,8 +45,7 @@ Saved: B wins (anthropic/claude-sonnet-5.5) for eval r_3f9a1c2e.
 
 | Tab | Use | Keys |
 |---|---|---|
-| Review | your chats (current one pinned); grade a turn pass/fail, add a note or expected answer | `j`/`k`, `p`/`f`, `Cmd+Enter` |
-| Compare | one prompt, a column per model; tap every good answer (several can be good), save & next unjudged | `j`/`k`, `a`-`e` toggle, `t` all, `n` none, `Cmd+Enter` |
+| Review | your chats (current one pinned). Each turn shows its answers: just the reply, or a column per model after `/eval`. Tap every good answer (several can be good); note, expected answer | `j`/`k` turn, `a`-`e` toggle, `t` all, `n` none, `Cmd+Enter` save |
 | Leaderboard | per model: how often its answer was good, and sole wins (the only good one) | |
 
 ## Your evals are a plain file
