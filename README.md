@@ -20,11 +20,21 @@ No Hermes yet: install it, pick a model provider, then run the line above.
 curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 hermes setup
 ```
-Just try it, needs only Docker (no account, no key, nothing installed): Hermes + two small local models (~1.5 GB, CPU) in containers, opens Hermes chat. Remove it all: same line with `QE_CLEAN=1 sh`.
+
+### Try it (no account, no key, your Hermes untouched)
+
+Setup once, copy and paste (skip what you have):
+```
+curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --skip-setup   # Hermes
+brew install ollama && ollama serve &                                                 # or the app: https://ollama.com/download
+ollama pull qwen2.5:0.5b && ollama pull deepseek-r1:1.5b                                # ~1.5 GB
+```
+Then this line gives the plugin a Hermes home of its own and opens Hermes:
 ```
 curl -fsSL https://raw.githubusercontent.com/tikiverse/hermes-hackathon-2026/quick-eval-ui/scripts/demo.sh | sh
 ```
 Ask "What happened at Tiananmen Square in 1989?", then `/quick-eval`: DeepSeek-R1 refuses.
+llama-server or vLLM instead of Ollama: skip the demo, install into your Hermes (above); `/quick-eval` finds them.
 
 Models: nothing to configure. `/quick-eval` lists the models Hermes is signed in to, plus Ollama, LM Studio or vLLM if one runs on this machine.
 

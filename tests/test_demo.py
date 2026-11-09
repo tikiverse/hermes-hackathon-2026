@@ -26,27 +26,42 @@ def test_pull_line_names_every_model_the_demo_uses():
     assert sorted(pull_line()) == sorted([config["model"]["default"], *(a["model"] for a in aliases)])
 
 
-def fake_docker(tmp_path):
-    """why: record every docker call; `ps` reports nothing running, so the script starts Ollama."""
+def fake_bin(tmp_path, models):
+    """why: Hermes and Ollama stand-ins; `ollama list` shows only the given models."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
-    (bin_dir / "docker").write_text('#!/bin/sh\necho "$*" >> "$CALLS"\n')
-    (bin_dir / "docker").chmod(0o755)
+    listing = "".join(f"{model} x 1 GB now\\n" for model in models)
+    tools = {"hermes": "exit 0", "ollama": f'[ "$1" = list ] && printf "NAME\\n{listing}"; exit 0'}
+    for name, body in tools.items():
+        (bin_dir / name).write_text(f"#!/bin/sh\n{body}\n")
+        (bin_dir / name).chmod(0o755)
     return bin_dir
 
 
-def run_demo(tmp_path, **extra):
-    calls = tmp_path / "calls"
-    env = {**os.environ, "PATH": f"{fake_docker(tmp_path)}:{os.environ['PATH']}", "CALLS": str(calls),
-           "QE_SRC": "src", "QE_TTY": "/dev/null", **extra}
+def run_demo(tmp_path, models):
+    src = tmp_path / "src"
+    git("clone", "-q", str(ROOT), str(src), cwd=tmp_path)
+    git("checkout", "-q", "-b", "try", cwd=src)
+    env = {**os.environ, "HOME": str(tmp_path), "PATH": f"{fake_bin(tmp_path, models)}:{os.environ['PATH']}",
+           "QE_REPO": str(src), "QE_BRANCH": "try", "QE_DIR": str(tmp_path / "copy"),
+           "QE_DEMO_HOME": str(tmp_path / "home"), "QE_NO_LAUNCH": "1"}
     with SCRIPT.open() as piped:  # why: same as `curl | sh`, where stdin is the script itself
-        subprocess.run(["sh"], stdin=piped, env=env, check=True, capture_output=True, timeout=30)
-    return [line.split()[0] for line in calls.read_text().splitlines()]
+        return subprocess.run(["sh"], stdin=piped, env=env, capture_output=True, text=True, timeout=60)
 
 
-def test_demo_runs_everything_in_docker(tmp_path):
-    assert run_demo(tmp_path) == ["info", "build", "ps", "run", "run", "stop"]
+def test_demo_sets_up_its_own_home_with_the_branch_plugin(tmp_path):
+    assert run_demo(tmp_path, pull_line()).returncode == 0
+    home = tmp_path / "home"
+    assert (home / "plugins" / "quick-eval").resolve() == (tmp_path / "copy" / "plugins" / "quick-eval").resolve()
+    assert yaml.safe_load((home / "config.yaml").read_text())["model"]["default"] == pull_line()[0]
 
 
-def test_clean_removes_the_container_volumes_and_image(tmp_path):
-    assert run_demo(tmp_path, QE_CLEAN="1") == ["info", "rm", "volume", "rmi"]
+def test_a_missing_model_prints_the_pull_command(tmp_path):
+    done = run_demo(tmp_path, pull_line()[:1])
+    assert done.returncode == 1
+    assert f"ollama pull {pull_line()[1]}" in done.stderr
+
+
+def test_readme_pulls_exactly_the_demo_models():
+    readme = (ROOT / "README.md").read_text()
+    assert re.findall(r"ollama pull (\S+)", readme) == pull_line()
