@@ -309,3 +309,10 @@ def test_local_server_host_override(module, monkeypatch):
 def test_file_link_is_clickable(module, tmp_path):
     link = module.ui.file_link(tmp_path / "config.yaml")
     assert link.startswith("\033]8;;file://") and link.endswith("\033]8;;\033\\")
+
+
+def test_local_model_path_shows_its_repo_name(module):
+    path = "/Users/x/.cache/huggingface/hub/models--mlx-community--Qwen3-4bit/snapshots/" + "ab" * 20
+    answer = {"label": "B", "model": path, "text": "hi", "latency_ms": 5}
+    assert module.evals.answer_lines(answer)[0] == "── B · Qwen3-4bit · 5 ms ──"
+    assert module.evals.Target("local", path, "Mac mini").describe() == "local (Qwen3-4bit via Mac mini)"

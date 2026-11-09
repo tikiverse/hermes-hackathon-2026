@@ -1,4 +1,5 @@
 """why: ask other models the user's last question and build the v1 log lines for it."""
+import re
 import string
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -8,6 +9,15 @@ from functools import partial
 from . import quickeval_schema as schema
 
 LABELS = string.ascii_uppercase
+HF_REPO = re.compile(r"models--[^/]*?--([^/]+)")
+
+
+def short_model(model):
+    """why: a local server names its model by a cache path; show the repo name instead."""
+    if not model or not model.startswith("/"):
+        return model
+    found = HF_REPO.search(model)
+    return found.group(1) if found else model.rstrip("/").rsplit("/", 1)[-1]
 
 
 @dataclass(frozen=True)
@@ -18,9 +28,10 @@ class Target:
 
     def describe(self) -> str:
         where = f" via {self.provider}" if self.provider else ""
+        model = short_model(self.model)
         if self.name == self.model:
-            return f"{self.model}{where}"
-        return f"{self.name} ({self.model}{where})"
+            return f"{model}{where}"
+        return f"{self.name} ({model}{where})"
 
 
 def target_for(name, aliases):
@@ -72,7 +83,7 @@ def call_job(job):
 def answer_lines(a):
     tag = f"{a['latency_ms']} ms" if a.get("latency_ms") is not None else "original"
     body = f"[error] {a['error']}" if a.get("error") else a["text"].strip()
-    return [f"── {a['label']} · {a.get('model') or 'unknown'} · {tag} ──", body, ""]
+    return [f"── {a['label']} · {short_model(a.get('model')) or 'unknown'} · {tag} ──", body, ""]
 
 
 def choices(run):
