@@ -24,7 +24,7 @@ Or skip installing: [Demo in Docker](#demo-in-docker) needs only Docker and an O
 
 Models: nothing to configure. `/quick-eval` lists the models Hermes is signed in to, plus Ollama, LM Studio or vLLM if one runs on this machine.
 
-Restart `hermes` after installing. To try an unmerged branch: `git clone -b <branch> https://github.com/tikiverse/hermes-hackathon-2026 && hermes-hackathon-2026/scripts/link-plugins.sh quick-eval`.
+Restart `hermes` after installing.
 
 ### Use
 
