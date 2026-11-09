@@ -34,6 +34,13 @@ Then this line gives the plugin a Hermes home of its own and opens Hermes:
 curl -fsSL https://raw.githubusercontent.com/tikiverse/hermes-hackathon-2026/quick-eval-ui/scripts/demo.sh | sh
 ```
 Ask "What happened at Tiananmen Square in 1989?", then `/quick-eval`: DeepSeek-R1 refuses.
+Remove the demo (the last 2 lines only if you installed them for it; `hermes uninstall` keeps `~/.hermes`):
+```
+rm -rf ~/.hermes-quick-eval-demo ~/.cache/quick-eval-pr
+ollama rm qwen2.5:0.5b deepseek-r1:1.5b
+brew uninstall ollama
+hermes uninstall
+```
 llama-server or vLLM instead of Ollama: skip the demo, install into your Hermes (above); `/quick-eval` finds them.
 
 Models: nothing to configure. `/quick-eval` lists the models Hermes is signed in to, plus Ollama, LM Studio or vLLM if one runs on this machine.
