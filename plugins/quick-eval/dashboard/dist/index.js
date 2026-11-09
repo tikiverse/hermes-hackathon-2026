@@ -390,10 +390,12 @@ function saveButton() {
 }
 
 function barEl() {
+  const answers = answersOf(turn())
+  const title = answers.length > 1 ? h("span", { class: "ep-meta", text: "Good" }) : null
   const note = h("input", { class: "ep-input ep-note", placeholder: "Note: why?", "aria-label": "Note", value: EP.draft.note,
     oninput: onField.bind(null, "note") })
   return h("footer", { class: "ep-bar", "aria-label": "Mark the good answers" }, h("div", { class: "ep-bar-in" },
-    h("span", { class: "ep-meta", text: "Good" }), h("div", { class: "ep-seg" }, choicesEl(answersOf(turn()))), note,
+    title, h("div", { class: "ep-seg" }, choicesEl(answers)), note,
     saveButton()))
 }
 

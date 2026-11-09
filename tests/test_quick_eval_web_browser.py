@@ -158,3 +158,10 @@ def test_leaderboard_headers_never_break_inside_a_word_on_phone(page):
     page.wait_for_selector(".ep-table th")
     wraps = page.eval_on_selector_all(".ep-table th", "ths => ths.map(t => getComputedStyle(t).overflowWrap)")
     assert set(wraps) == {"normal"}
+
+
+def test_chat_picker_button_is_phone_only(page):
+    page.set_viewport_size({"width": 1440, "height": 900})
+    assert not page.is_visible(".ep-railbtn")
+    page.set_viewport_size({"width": 390, "height": 844})
+    assert page.is_visible(".ep-railbtn")

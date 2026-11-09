@@ -45,7 +45,7 @@
 .ep-brand { font-weight: 650; white-space: nowrap; }
 .ep-grow { flex: 1; }
 .ep-meta { color: var(--ep-muted); font: 12px var(--ep-mono); white-space: nowrap; }
-.ep-railbtn { display: none; }
+.ep-head .ep-railbtn { display: none; }
 
 /* why: shared controls */
 .ep-btn { min-height: var(--ep-tap); display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; background-color: var(--ep-panel); border: 1px solid var(--ep-line); border-radius: var(--ep-r-sm); color: var(--ep-fg); text-decoration: none; white-space: nowrap; transition-property: border-color, scale; transition-duration: var(--ep-t); }
@@ -153,7 +153,7 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
   .ep-head > .ep-grow { display: none; }
   .ep-tabs { flex: 1; min-width: 0; }
   .ep-tabs .ep-segb { flex: 1 1 auto; min-width: 0; white-space: nowrap; }
-  .ep-railbtn { display: flex; flex-basis: 100%; min-width: 0; max-width: 100%; justify-content: space-between; min-height: 44px; text-align: left; }
+  .ep-head .ep-railbtn { display: flex; flex-basis: 100%; min-width: 0; max-width: 100%; justify-content: space-between; min-height: 44px; text-align: left; }
   .ep-railbtn-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .ep-chev { color: var(--ep-muted); transition-property: rotate; transition-duration: var(--ep-t); }
   .ep-head.rail-open .ep-chev { rotate: 180deg; }
