@@ -1,7 +1,7 @@
-/* why: quick-eval UI, framework-free. Review a chat, compare answers to one prompt, see which model wins. */
+/* why: quick-eval UI, framework-free. Review a chat turn and its /eval answers, see which model wins. */
 "use strict"
 
-const TABS = { review: "Review", compare: "Compare", board: "Leaderboard" }
+const TABS = { review: "Review", board: "Leaderboard" }
 const RAIL_CHARS = 30 /* why: rail is 280px; a longer label gets cut mid-glyph by CSS */
 const AGO_STEPS = [
   { lt: 3600, div: 60, suffix: "m ago" },
@@ -20,12 +20,10 @@ function freshState() {
     root: null, api: "", fetchJSON: null, els: {}, tab: "review", range: "all", q: "", stats: {}, toast: "",
     toastTimer: null, pollTimer: null, sessions: [], sessionId: null, live: true, session: null, turns: [], sel: 0,
     runs: [], draft: emptyDraft(), dirty: false, lastMsgCount: 0, board: [],
-    cmp: { runs: [], sel: 0, draft: emptyPick(), unjudged: false, dirty: false },
   }
 }
 
-function emptyDraft() { return { verdict: null, note: "", expected: "" } }
-function emptyPick() { return { good: null, note: "" } }
+function emptyDraft() { return { good: null, note: "", expected: "" } }
 function pick(a, b) { return a || b }
 function ignore() { return undefined }
 function noJson() { return {} }
@@ -130,16 +128,11 @@ function renderHead() {
 }
 
 /* why: on a phone the rail is a full-screen picker opened from this button; on desktop the button is hidden */
-const RAIL_LABELS = { review: currentChatLabel, compare: currentRunLabel }
+const RAIL_LABELS = { review: currentChatLabel }
 
 function currentChatLabel() {
   const s = EP.sessions.find(sameId.bind(null, EP.sessionId))
   return (EP.live ? "Current chat · " : "") + (s ? sessionTitle(s) : "Pick a chat")
-}
-
-function currentRunLabel() {
-  const n = shownRuns().length
-  return n ? `Run ${EP.cmp.sel + 1} of ${n} · ${clip(oneLine(cmpRun().prompt), RAIL_CHARS)}` : "No runs yet"
 }
 
 function railButton() {
@@ -180,14 +173,14 @@ function searchEl(placeholder) {
     oninput: onSearch })
 }
 
-function railEl(title, placeholder, extra) {
+function railEl(title, placeholder) {
   return h("nav", { class: "ep-rail", "aria-label": title }, h("div", { class: "ep-rail-top" }, h("h2", { text: title }),
-    rangeEl(), searchEl(placeholder), extra), h("div", { class: "ep-rail-list" }))
+    rangeEl(), searchEl(placeholder)), h("div", { class: "ep-rail-list" }))
 }
 
 function renderRailList() {
   const list = EP.els.body.querySelector(".ep-rail-list")
-  if (list) fill(list, EP.tab === "compare" ? runItems() : sessionItems())
+  if (list) fill(list, sessionItems())
 }
 
 function sinceParam() { return EP.range === "all" ? "" : String(RANGES[EP.range].secs) }
@@ -196,7 +189,6 @@ function query(extra) { return "?" + new URLSearchParams({ since: sinceParam(), 
 
 async function reloadTab() {
   EP.stats = await call("/stats")
-  if (EP.tab === "compare") await loadCompare()
   if (EP.tab === "board") EP.board = (await call("/leaderboard" + query({}))).rows
 }
 
@@ -263,8 +255,17 @@ function turn() { return EP.turns[EP.sel] }
 function judgmentOf(run) { return run ? run.judgment : null }
 function modelName() { return shortModel(pick(EP.session && EP.session.model, "model")) }
 
+/* why: a turn without an /eval run is one answer, A (the reply you saw); a run puts B.. beside it */
+function answersOf(t) {
+  const run = runFor(t)
+  return run ? run.answers : [{ label: "A", model: EP.session && EP.session.model, text: t.response }]
+}
+
+function labelOfAnswer(a) { return a.label }
+function labels() { return answersOf(turn()).map(labelOfAnswer) }
+
 function draftFrom(j) {
-  return j ? { verdict: j.verdict || null, note: pick(j.note, ""), expected: pick(j.expected, "") } : emptyDraft()
+  return j ? { good: j.good, note: pick(j.note, ""), expected: pick(j.expected, "") } : emptyDraft()
 }
 
 function select(i) {
@@ -280,15 +281,18 @@ function bubble(kind, who, text) {
     h("div", { class: "ep-bubble", text }))
 }
 
-function verdictDot(t) {
+function goodText(good) { return good.length ? good.join(" ") : "none" }
+
+function judgedDot(t) {
   const j = judgmentOf(runFor(t))
-  return j && j.verdict ? h("i", { class: "ep-dot " + j.verdict, title: j.verdict }) : null
+  if (!j || j.good == null) return null
+  return h("i", { class: "ep-dot " + (j.good.length ? "pass" : "fail"), title: "good: " + goodText(j.good) })
 }
 
 function pastEl(t, i) {
   const reply = t.response ? bubble("asst", modelName(), clip(t.response, 360)) : null
   return h("div", { class: "ep-past", onclick: select.bind(null, i), title: "review this turn" },
-    h("span", { class: "ep-now-label" }, `TURN ${i + 1} `, verdictDot(t)), bubble("user", "You", clip(t.prompt, 360)), reply)
+    h("span", { class: "ep-now-label" }, `TURN ${i + 1} `, judgedDot(t)), bubble("user", "You", clip(t.prompt, 360)), reply)
 }
 
 function asText(v) { return typeof v === "string" ? v : JSON.stringify(v, null, 2) }
@@ -311,19 +315,34 @@ function expectedEl() {
   return fold
 }
 
-function compareLink(t) {
-  const run = runFor(t)
-  if (!run || run.answers.length < 2) return h("p", { class: "ep-hint", text: "Run /eval in Hermes to compare this answer with other models." })
-  const good = goodOf(run, judgmentOf(run))
-  const label = `Compare ${run.answers.length} answers` + (good ? ` · good: ${goodText(good)}` : "") + " →"
-  return h("button", { class: "ep-btn ep-link", onclick: openCompare.bind(null, run.id) }, label)
+/* why: every answer is a column you tap to mark good; several can be good */
+function isGood(label) { return (EP.draft.good || []).includes(label) }
+function answerName(a) { return shortModel(pick(a.model, "unknown")) }
+function answerMeta(a) { return a.latency_ms == null ? "the reply you saw" : secs(a.latency_ms) }
+
+function answerBody(a) {
+  if (a.error) return h("span", { class: "ep-col-b ep-err", text: "⚠ " + a.error })
+  return h("span", { class: "ep-col-b", text: pick(a.text, "(no text response)") })
+}
+
+function answerCol(a) {
+  const good = isGood(a.label)
+  return h("button", { class: "ep-col" + (good ? " won" : ""), onclick: toggleGood.bind(null, a.label),
+    "aria-pressed": String(good), title: `${a.label} is good` },
+    h("span", { class: "ep-col-h" }, h("span", { class: "ep-label", text: a.label }), h("b", { text: answerName(a) }),
+      h("span", { class: "ep-col-meta", text: answerMeta(a) })), answerBody(a))
+}
+
+function gridEl(answers) {
+  return h("div", { class: "ep-cgrid", style: `--ep-cols: ${Math.min(answers.length, 3)}` }, answers.map(answerCol))
 }
 
 function focusEl(t) {
+  const answers = answersOf(t)
+  const hint = answers.length > 1 ? null : h("p", { class: "ep-hint", text: "Run /eval in Hermes to compare this answer with other models." })
   return h("section", { class: "ep-now", "aria-label": "Turn under review" },
     h("span", { class: "ep-now-label", text: `TURN ${t.index + 1} · reviewing · ${ago(t.ts)}` }),
-    bubble("user", "You", t.prompt), chipsEl(t), bubble("asst", modelName(), pick(t.response, "(no text response)")),
-    compareLink(t), expectedEl())
+    bubble("user", "You", t.prompt), chipsEl(t), gridEl(answers), hint, expectedEl())
 }
 
 function turnEl(t, i) { return i === EP.sel ? focusEl(t) : pastEl(t, i) }
@@ -333,28 +352,49 @@ function stageEl() {
   return h("main", { class: "ep-stage" }, h("div", { class: "ep-thread" }, EP.turns.map(turnEl)))
 }
 
-function toggleVerdict(kind) {
-  EP.draft.verdict = EP.draft.verdict === kind ? null : kind
+function isIn(list, item) { return list.includes(item) }
+function isNot(label, other) { return other !== label }
+
+function setGood(good) {
+  EP.draft.good = labels().filter(isIn.bind(null, good))
   EP.dirty = true
+  swap(".ep-cgrid", gridEl(answersOf(turn())))
   swap(".ep-bar", barEl())
 }
 
-function verdictButton(kind, label, key) {
-  return h("button", { class: `ep-segb ${kind}${onClass(EP.draft.verdict === kind)}`, onclick: toggleVerdict.bind(null, kind) },
-    label, kbd(key))
+function toggleGood(label) {
+  const good = EP.draft.good || []
+  setGood(good.includes(label) ? good.filter(isNot.bind(null, label)) : good.concat(label))
 }
 
-function saveButton(dirty, onclick) {
-  const dot = dirty ? h("span", { class: "ep-unsaved", title: "unsaved" }) : null
-  return h("button", { class: "ep-btn pri", onclick }, dot, "Save & next", kbd("⌘↵"))
+function setAllGood() { setGood(labels()) }
+function setNoneGood() { setGood([]) }
+function isAll() { const g = EP.draft.good; return !!g && g.length === labels().length }
+function isNone() { const g = EP.draft.good; return !!g && !g.length }
+
+function choice(text, on, onclick) {
+  return h("button", { class: "ep-segb" + onClass(on), "aria-pressed": String(on), onclick }, text)
+}
+
+function labelButton(a) { return choice(a.label, isGood(a.label), toggleGood.bind(null, a.label)) }
+
+/* why: one answer reads as Good / Not good; several as A B C + All / None */
+function choicesEl(answers) {
+  if (answers.length < 2) return [choice("Good", isAll(), setAllGood), choice("Not good", isNone(), setNoneGood)]
+  return [answers.map(labelButton), choice("All", isAll(), setAllGood), choice("None", isNone(), setNoneGood)]
+}
+
+function saveButton() {
+  const dot = EP.dirty ? h("span", { class: "ep-unsaved", title: "unsaved" }) : null
+  return h("button", { class: "ep-btn pri", onclick: saveReview }, dot, "Save & next", kbd("⌘↵"))
 }
 
 function barEl() {
   const note = h("input", { class: "ep-input ep-note", placeholder: "Note: why?", "aria-label": "Note", value: EP.draft.note,
     oninput: onField.bind(null, "note") })
-  return h("footer", { class: "ep-bar", "aria-label": "Grade turn" }, h("div", { class: "ep-bar-in" },
-    h("div", { class: "ep-seg" }, verdictButton("pass", "Pass", "p"), verdictButton("fail", "Fail", "f")), note,
-    saveButton(EP.dirty, saveReview)))
+  return h("footer", { class: "ep-bar", "aria-label": "Mark the good answers" }, h("div", { class: "ep-bar-in" },
+    h("span", { class: "ep-meta", text: "Good" }), h("div", { class: "ep-seg" }, choicesEl(answersOf(turn()))), note,
+    saveButton()))
 }
 
 function gradeBody(t) {
@@ -368,7 +408,7 @@ async function persistReview(t) {
   await send("/judgments", gradeBody(t))
   await loadRuns()
   EP.stats = await call("/stats")
-  toast("Saved ✓")
+  toast(EP.draft.good ? `Saved ✓ · good: ${goodText(EP.draft.good)}` : "Saved ✓")
 }
 
 function saveReview() {
@@ -378,169 +418,10 @@ function saveReview() {
 }
 
 function renderReview() {
-  fill(EP.els.body, railEl("Chats", "Search chats or models", null), h("div", { class: "ep-main" }, stageEl(), turn() ? barEl() : null))
+  fill(EP.els.body, railEl("Chats", "Search chats or models"), h("div", { class: "ep-main" }, stageEl(), turn() ? barEl() : null))
   renderRailList()
   const now = EP.els.body.querySelector(".ep-now")
   if (now && now.scrollIntoView) now.scrollIntoView({ block: "start" })
-}
-
-/* why: Compare tab: one prompt, one column per model, mark every good answer, next unjudged */
-
-function isUnjudged(run) { return !run.judgment || !run.judgment.winner }
-function shownRuns() { return EP.cmp.unjudged ? EP.cmp.runs.filter(isUnjudged) : EP.cmp.runs }
-function cmpRun() { return shownRuns()[EP.cmp.sel] || null }
-function labelsOf(run) { return run.answers.map(labelOfAnswer) }
-function labelOfAnswer(a) { return a.label }
-
-/* why: judgments from before `good` existed name one winner; a tie then meant every answer was fine */
-const LEGACY_GOOD = { tie: labelsOf, none: noLabels }
-function noLabels() { return [] }
-
-function goodOf(run, j) {
-  if (!j) return null
-  if (j.good != null) return j.good
-  if (j.winner == null) return null
-  return (LEGACY_GOOD[j.winner] || oneLabel.bind(null, j.winner))(run)
-}
-function oneLabel(label) { return [label] }
-
-function pickFrom(run) {
-  const j = run && judgmentOf(run)
-  return j ? { good: goodOf(run, j), note: pick(j.note, "") } : emptyPick()
-}
-function isGood(label) { return (EP.cmp.draft.good || []).includes(label) }
-
-function cmpSelect(i) {
-  EP.cmp.sel = Math.max(0, Math.min(i, shownRuns().length - 1))
-  EP.cmp.draft = pickFrom(cmpRun())
-  EP.cmp.dirty = false
-  render()
-}
-
-async function loadCompare() {
-  const keep = cmpRun() && cmpRun().id
-  EP.cmp.runs = (await call("/runs" + query({ multi: "1" }))).runs
-  EP.cmp.sel = Math.max(0, shownRuns().findIndex(sameId.bind(null, keep)))
-  EP.cmp.draft = pickFrom(cmpRun())
-  EP.cmp.dirty = false
-}
-
-async function openCompare(runId) {
-  Object.assign(EP, { tab: "compare", q: "", range: "all" })
-  await reloadTab()
-  cmpSelect(Math.max(0, shownRuns().findIndex(sameId.bind(null, runId))))
-}
-
-function setGood(good) {
-  EP.cmp.draft.good = labelsOf(cmpRun()).filter(isIn.bind(null, good))
-  EP.cmp.dirty = true
-  swap(".ep-cgrid", gridEl(cmpRun()))
-  swap(".ep-bar", compareBarEl())
-}
-
-function isIn(list, item) { return list.includes(item) }
-
-function toggleGood(label) {
-  const good = EP.cmp.draft.good || []
-  setGood(good.includes(label) ? good.filter(isNot.bind(null, label)) : good.concat(label))
-}
-function isNot(label, other) { return other !== label }
-function setAllGood() { setGood(labelsOf(cmpRun())) }
-function setNoneGood() { setGood([]) }
-
-function hasLabel(label, a) { return a.label === label }
-function answerName(a) { return shortModel(pick(a.model, "unknown")) }
-
-function runButton(run, i) {
-  const j = run.judgment
-  const badge = j && j.winner ? h("span", { class: "ep-label", text: goodText(goodOf(run, j)) }) : null
-  return h("button", { class: "ep-item" + onClass(i === EP.cmp.sel), onclick: cmpSelect.bind(null, i), title: run.prompt },
-    h("span", { class: "ep-item-t" }, clip(oneLine(run.prompt), RAIL_CHARS), grow(), badge),
-    h("span", { class: "ep-item-s", text: `${run.answers.length} answers · ${ago(run.ts)}` }))
-}
-
-function runItems() {
-  const runs = shownRuns()
-  return runs.length ? runs.map(runButton) : h("div", { class: "ep-empty sm", text: "No /eval runs here yet." })
-}
-
-function onUnjudged(e) { EP.cmp.unjudged = e.target.checked; cmpSelect(0) }
-function answerMeta(a) { return a.latency_ms == null ? "the reply you saw" : secs(a.latency_ms) }
-
-function answerBody(a) {
-  if (a.error) return h("span", { class: "ep-col-b ep-err", text: "⚠ " + a.error })
-  return h("span", { class: "ep-col-b", text: pick(a.text, "(empty)") })
-}
-
-function goodText(good) { return good && good.length ? good.join(" ") : "none" }
-
-function answerCol(a) {
-  const good = isGood(a.label)
-  return h("button", { class: "ep-col" + (good ? " won" : ""), onclick: toggleGood.bind(null, a.label),
-    "aria-pressed": String(good), title: `${a.label} is good` },
-    h("span", { class: "ep-col-h" }, h("span", { class: "ep-label", text: a.label }), h("b", { text: answerName(a) }),
-      h("span", { class: "ep-col-meta", text: answerMeta(a) })), answerBody(a))
-}
-
-function gridEl(run) {
-  return h("div", { class: "ep-cgrid", style: `--ep-cols: ${Math.min(run.answers.length, 4)}` }, run.answers.map(answerCol))
-}
-
-function cmpStageEl(run) {
-  if (!run) return h("main", { class: "ep-stage" }, h("div", { class: "ep-empty", text: "Nothing to compare yet. In Hermes: ask something, then /eval." }))
-  return h("main", { class: "ep-stage" }, h("div", { class: "ep-cwrap" },
-    h("div", { class: "ep-prompt" }, h("div", { class: "ep-prompt-h" }, h("span", { class: "ep-now-label", text: "PROMPT" })),
-      h("div", { class: "ep-prompt-t", text: run.prompt })), gridEl(run)))
-}
-
-function labelButton(a) {
-  return h("button", { class: "ep-segb" + onClass(isGood(a.label)), "aria-pressed": String(isGood(a.label)),
-    onclick: toggleGood.bind(null, a.label) }, a.label)
-}
-
-function isAll() { const g = EP.cmp.draft.good; return !!g && g.length === cmpRun().answers.length }
-function isNone() { const g = EP.cmp.draft.good; return !!g && !g.length }
-function onCmpNote(e) { EP.cmp.draft.note = e.target.value; EP.cmp.dirty = true }
-
-function compareBarEl() {
-  const note = h("input", { class: "ep-input ep-note", placeholder: "Note: why these?", "aria-label": "Note",
-    value: EP.cmp.draft.note, oninput: onCmpNote })
-  return h("footer", { class: "ep-bar", "aria-label": "Mark the good answers" }, h("div", { class: "ep-bar-in" },
-    h("span", { class: "ep-meta", text: "Good" }), h("div", { class: "ep-seg" }, cmpRun().answers.map(labelButton),
-      h("button", { class: "ep-segb" + onClass(isAll()), onclick: setAllGood }, "All"),
-      h("button", { class: "ep-segb" + onClass(isNone()), onclick: setNoneGood }, "None")),
-    note, saveButton(EP.cmp.dirty, saveCompare)))
-}
-
-function replaceRun(saved, run) { return run.id === saved.id ? saved : run }
-function isAfterUnjudged(sel, run, i) { return i > sel && isUnjudged(run) }
-
-function nextUnjudged() {
-  const after = shownRuns().findIndex(isAfterUnjudged.bind(null, EP.cmp.sel))
-  return after >= 0 ? after : EP.cmp.sel + 1
-}
-
-async function persistCompare(run) {
-  const saved = await send("/judgments", { run_id: run.id, ...EP.cmp.draft })
-  EP.cmp.runs = EP.cmp.runs.map(replaceRun.bind(null, saved))
-  EP.stats = await call("/stats")
-  toast(EP.cmp.draft.good ? `Saved ✓ · good: ${goodText(EP.cmp.draft.good)}` : "Saved ✓")
-}
-
-function advanceCompare() { cmpSelect(EP.cmp.unjudged ? EP.cmp.sel : nextUnjudged()) }
-
-function saveCompare() {
-  const run = cmpRun()
-  if (!run) return Promise.resolve()
-  return persistCompare(run).then(advanceCompare).catch(fail)
-}
-
-function renderCompare() {
-  const run = cmpRun()
-  const toggle = h("label", { class: "ep-check" }, h("input", { type: "checkbox", checked: EP.cmp.unjudged, onchange: onUnjudged }), "unjudged only")
-  fill(EP.els.body, railEl("Runs", "Search prompts or models", toggle),
-    h("div", { class: "ep-main" }, cmpStageEl(run), run ? compareBarEl() : null))
-  renderRailList()
 }
 
 /* why: Leaderboard tab: one row per model across the runs in range */
@@ -566,7 +447,7 @@ function renderBoard() {
     EP.board.length ? table : empty, note))
 }
 
-const RENDERERS = { review: renderReview, compare: renderCompare, board: renderBoard }
+const RENDERERS = { review: renderReview, board: renderBoard }
 
 function render() {
   renderHead()
@@ -582,29 +463,26 @@ function hasModifier(e) { return e.metaKey || e.ctrlKey || e.altKey }
 function isSaveCombo(e) { return (e.metaKey || e.ctrlKey) && e.key === "Enter" }
 function nextTurn(e) { e.preventDefault(); select(EP.sel + 1) }
 function prevTurn(e) { e.preventDefault(); select(EP.sel - 1) }
-function nextRun(e) { e.preventDefault(); cmpSelect(EP.cmp.sel + 1) }
-function prevRun(e) { e.preventDefault(); cmpSelect(EP.cmp.sel - 1) }
 
 function goodKey(e) {
-  const run = cmpRun()
   const label = e.key.toUpperCase()
-  if (run && run.answers.some(hasLabel.bind(null, label))) toggleGood(label)
+  if (labels().includes(label)) toggleGood(label)
 }
 
 const KEYMAPS = {
-  review: { j: nextTurn, ArrowDown: nextTurn, k: prevTurn, ArrowUp: prevTurn, p: toggleVerdict.bind(null, "pass"),
-    f: toggleVerdict.bind(null, "fail") },
-  compare: { j: nextRun, ArrowDown: nextRun, k: prevRun, ArrowUp: prevRun, t: setAllGood,
-    n: setNoneGood, a: goodKey, b: goodKey, c: goodKey, d: goodKey, e: goodKey },
+  review: { j: nextTurn, ArrowDown: nextTurn, k: prevTurn, ArrowUp: prevTurn, t: setAllGood, n: setNoneGood,
+    a: goodKey, b: goodKey, c: goodKey, d: goodKey, e: goodKey },
   board: {},
 }
 
-const SAVERS = { review: saveReview, compare: saveCompare, board: ignore }
+const SAVERS = { review: saveReview, board: ignore }
+
+function keyHandler(e) { return turn() ? KEYMAPS[EP.tab][e.key] : null }
 
 function onKey(e) {
   if (isSaveCombo(e)) { e.preventDefault(); SAVERS[EP.tab](); return }
   if (isTyping(e) || hasModifier(e)) return
-  const handler = KEYMAPS[EP.tab][e.key]
+  const handler = keyHandler(e)
   if (handler) handler(e)
 }
 
@@ -627,14 +505,7 @@ async function pollReview() {
   return openSession(latest.id, true)
 }
 
-async function pollCompare() {
-  if (EP.cmp.dirty) return
-  const before = EP.cmp.runs.length
-  await loadCompare()
-  if (EP.cmp.runs.length !== before) render()
-}
-
-const POLLERS = { review: pollReview, compare: pollCompare, board: ignore }
+const POLLERS = { review: pollReview, board: ignore }
 
 async function poll() {
   if (!EP.root.isConnected) { document.removeEventListener("keydown", onKey); return }

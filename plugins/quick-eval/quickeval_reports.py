@@ -7,7 +7,7 @@ import quickeval_paths as paths
 import quickeval_schema as schema
 
 TURN_KEYS = ("session_id", "message_id", "prompt", "response", "model")
-JUDGMENT_KEYS = ("winner", "verdict", "note", "expected")
+JUDGMENT_KEYS = ("note", "expected")
 
 
 def log():
@@ -19,7 +19,9 @@ def norm(text):
 
 
 def with_judgment(judgments, run):
-    return {**run, "judgment": judgments.get(run["id"])}
+    """why: the UI reads `good` only; older judgments get theirs filled in here."""
+    judgment = judgments.get(run["id"])
+    return {**run, "judgment": judgment and {**judgment, "good": schema.good_of(run, judgment)}}
 
 
 def matches(query, run):
@@ -82,8 +84,7 @@ def save_judgment(body):
     old = current.judgments().get(run["id"]) or {}
     merged = {key: body[key] if key in body else old.get(key) for key in JUDGMENT_KEYS}
     winner, good = picked(run, body, old)
-    record = schema.judgment_record(run["id"], winner, schema.check_verdict(merged["verdict"]), merged["note"],
-                                    merged["expected"], good=good)
+    record = schema.judgment_record(run["id"], winner, merged["note"], merged["expected"], good=good)
     current.append(record)
     return with_judgment({run["id"]: record}, run)
 

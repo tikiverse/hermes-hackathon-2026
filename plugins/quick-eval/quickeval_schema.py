@@ -5,7 +5,7 @@ import uuid
 RUN = "run"
 JUDGMENT = "judgment"
 OUTCOMES = ("tie", "none")
-VERDICTS = (None, "pass", "fail")
+LEGACY_VERDICT = {"pass": ["A"], "fail": []}
 
 
 def new_id(prefix):
@@ -23,10 +23,10 @@ def answer(label, model, text, **extra):
     return {"label": label, "model": model, "text": text or "", **extra}
 
 
-def judgment_record(run_id, winner=None, verdict=None, note="", expected="", good=None):
+def judgment_record(run_id, winner=None, note="", expected="", good=None):
     """why: `good` = every acceptable answer (several can be right); `winner` stays its one-word summary."""
     return {"v": 1, "type": JUDGMENT, "id": new_id("j"), "ts": time.time(), "run_id": run_id, "winner": winner,
-            "good": good, "verdict": verdict, "note": note or "", "expected": expected or ""}
+            "good": good, "note": note or "", "expected": expected or ""}
 
 
 def labels_of(run):
@@ -46,14 +46,16 @@ def winner_of(good):
 
 
 def good_of(run, judgment):
-    """why: judgments from before `good` existed name one winner; a tie then meant every answer was fine."""
-    if not judgment:
-        return None
+    """why: older lines name only a `winner` (tie = every answer good) or a Review `verdict` on answer A."""
+    judgment = judgment or {}
     if judgment.get("good") is not None:
         return judgment["good"]
-    winner = judgment.get("winner")
-    if winner is None:
-        return None
+    if judgment.get("winner"):
+        return legacy_good(run, judgment["winner"])
+    return LEGACY_VERDICT.get(judgment.get("verdict"))
+
+
+def legacy_good(run, winner):
     return labels_of(run) if winner == "tie" else [w for w in [winner] if w in labels_of(run)]
 
 
@@ -62,12 +64,6 @@ def check_winner(run, winner):
     if winner is not None and winner not in labels and winner not in OUTCOMES:
         raise ValueError(f"unknown winner {winner!r}; use {'|'.join(labels + list(OUTCOMES))}")
     return winner
-
-
-def check_verdict(verdict):
-    if verdict not in VERDICTS:
-        raise ValueError("verdict must be 'pass', 'fail' or null")
-    return verdict
 
 
 def winner_model(run, winner):
