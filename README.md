@@ -26,7 +26,7 @@ hermes setup
 Setup once, copy and paste (skip what you have):
 ```
 curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --skip-setup   # Hermes
-brew install ollama && ollama serve &                                                 # or the app: https://ollama.com/download
+brew install ollama && brew services start ollama                                   # or the app: https://ollama.com/download
 ollama pull qwen2.5:0.5b && ollama pull deepseek-r1:1.5b                                # ~1.5 GB
 ```
 Then this line gives the plugin a Hermes home of its own and opens Hermes:
@@ -38,7 +38,7 @@ Remove the demo (the last 2 lines only if you installed them for it; `hermes uni
 ```
 rm -rf ~/.hermes-quick-eval-demo ~/.cache/quick-eval-pr
 ollama rm qwen2.5:0.5b deepseek-r1:1.5b
-brew uninstall ollama
+brew services stop ollama && brew uninstall ollama
 hermes uninstall
 ```
 llama-server or vLLM instead of Ollama: skip the demo, install into your Hermes (above); `/quick-eval` finds them.
