@@ -17,6 +17,8 @@
   --ep-tap: 34px;
   --ep-rail: 280px;
   --ep-read: 780px;
+  --ep-max-wide: 1800px; /* why: several answers use the full stage, up to this */
+  --ep-above-cards: 240px; /* why: prompt + labels above answer text; the rest of the stage height goes to the cards */
   --ep-t: .15s;
   color: var(--ep-fg);
   font-size: 14px;
@@ -82,7 +84,7 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
 .ep-item-s { font-size: 12px; color: var(--ep-muted); white-space: nowrap; }
 .ep-livedot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--ep-pass); flex: none; }
 .ep-main { display: flex; flex-direction: column; min-height: 0; }
-.ep-stage { flex: 1; overflow-y: auto; padding: 18px 24px 28px; }
+.ep-stage { flex: 1; overflow-y: auto; padding: 18px 24px 28px; container-type: size; }
 .ep-toolbar { display: flex; align-items: center; gap: 8px; }
 
 /* why: transcript: past turns dimmed, the turn under review boxed */
@@ -120,7 +122,9 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
 .ep-col.won { border-color: var(--ep-accent); box-shadow: 0 0 0 1px var(--ep-accent); }
 .ep-col-h { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; width: 100%; padding: 8px 12px; border-bottom: 1px solid var(--ep-line); font-size: 12px; color: var(--ep-muted); }
 .ep-col-h b { color: var(--ep-fg); font-size: 13px; min-width: 0; }
-.ep-col-meta { flex-basis: 100%; }
+.ep-col-meta { margin-left: auto; white-space: nowrap; }
+.ep-now.multi { width: min(100cqw, var(--ep-max-wide)); align-self: center; margin: 0; }
+.ep-now.multi .ep-col-b { overflow-y: auto; max-height: max(240px, calc(100cqh - var(--ep-above-cards))); }
 .ep-col-b { padding: 12px; white-space: pre-wrap; }
 .ep-err { color: var(--ep-fail); }
 
@@ -163,6 +167,8 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
   .ep-item { min-height: 52px; justify-content: center; }
   .ep-stage { padding: 14px 12px 20px; }
   .ep-now { margin: 0; }
+  .ep-now.multi { width: auto; }
+  .ep-now.multi .ep-col-b { max-height: none; overflow-y: visible; }
   .ep-msg { max-width: 94%; }
   .ep-cgrid { grid-template-columns: minmax(0, 1fr); }
   .ep-bar { padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }

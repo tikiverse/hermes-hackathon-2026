@@ -334,13 +334,13 @@ function answerCol(a) {
 }
 
 function gridEl(answers) {
-  return h("div", { class: "ep-cgrid", style: `--ep-cols: ${Math.min(answers.length, 3)}` }, answers.map(answerCol))
+  return h("div", { class: "ep-cgrid", style: `--ep-cols: ${Math.min(answers.length, 4)}` }, answers.map(answerCol))
 }
 
 function focusEl(t) {
   const answers = answersOf(t)
   const hint = answers.length > 1 ? null : h("p", { class: "ep-hint", text: "Run /eval in Hermes to compare this answer with other models." })
-  return h("section", { class: "ep-now", "aria-label": "Turn under review" },
+  return h("section", { class: "ep-now" + (answers.length > 1 ? " multi" : ""), "aria-label": "Turn under review" },
     h("span", { class: "ep-now-label", text: `TURN ${t.index + 1} · reviewing · ${ago(t.ts)}` }),
     bubble("user", "You", t.prompt), chipsEl(t), gridEl(answers), hint, expectedEl())
 }

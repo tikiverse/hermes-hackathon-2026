@@ -165,3 +165,13 @@ def test_chat_picker_button_is_phone_only(page):
     assert not page.is_visible(".ep-railbtn")
     page.set_viewport_size({"width": 390, "height": 844})
     assert page.is_visible(".ep-railbtn")
+
+
+def test_several_answers_sit_in_one_full_width_row_on_desktop(page):
+    """why: Shaun: cards wrapped under each other with blank space left and right; scrolling to compare."""
+    page.set_viewport_size({"width": 1440, "height": 900})
+    tops = page.eval_on_selector_all(".ep-now .ep-col", "cs => cs.map(c => Math.round(c.getBoundingClientRect().top))")
+    assert len(tops) == 3 and len(set(tops)) == 1
+    stage = page.eval_on_selector(".ep-stage", "e => e.clientWidth - 48")
+    now = page.eval_on_selector(".ep-now", "e => e.getBoundingClientRect().width")
+    assert now >= stage
