@@ -14,5 +14,5 @@ Source: https://coinfomania.com/nousresearch-launches-hermes-agent-plugin-hackat
 | Plugin README at subdir (renders on catalog page) | done |
 | Entry draft | `docs/catalog/quick-eval.yaml`; sha after PR 2 merges |
 | Screenshots in PR body (UI) | from `ops site-check shots` on committed tree |
-| Demo video | Shaun |
+| Demo video | Shaun: https://github.com/tikiverse/hermes-hackathon-2026/issues/3 |
 | Catalog PR, from Shaun's account (rule 5: owner) | Shaun's go |
