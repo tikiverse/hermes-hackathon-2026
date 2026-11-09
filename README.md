@@ -31,6 +31,7 @@ Saved: B wins (anthropic/claude-sonnet-5.5) for eval r_3f9a1c2e.
 - **`/eval`** on its own opens a checklist with your default models pre-checked. `/eval claude local` skips the checklist and uses those aliases. You can also type a raw model id, or `model@provider`.
 - **The first `/eval`** asks permission to call other models and saves it to `config.yaml`. Without a terminal to ask in (a gateway, for example), it refuses and links to the config file.
 - **Local servers** running on their usual ports (Ollama on 11434, LM Studio on 1234, vLLM on 8000) show up in the checklist automatically. Picking one adds it to Hermes as a provider, so nobody has to edit the config by hand.
+- **Known limit, local thinking models** (Qwen3 and similar): Hermes drops a custom provider's `extra_body` and `max_tokens` on plugin calls ([hermes-agent#124290](https://github.com/NousResearch/hermes-agent/pull/124290), [#50132](https://github.com/NousResearch/hermes-agent/issues/50132)). So the model thinks, and a server with a small default cap can return no answer; `/eval` then says so instead of showing a blank. Fix on the server until those land: turn thinking off by default (`mlx_lm.server --chat-template-args '{"enable_thinking": false}'`) or raise its default max tokens. Works on stock Hermes; no patch needed.
 
 ### Demo setup
 
