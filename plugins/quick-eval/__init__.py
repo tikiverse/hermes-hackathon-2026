@@ -1,8 +1,8 @@
-"""why: quick-eval. /eval asks other models your last question and lets you pick the best answer.
+"""why: quick-eval. /quick-eval asks other models your last question and lets you pick the best answer.
 
-/eval [model ...]               ask; then pick a winner (terminal) or get a /eval pick hint
-/eval pick A|A,B|tie|none [note]  record the good answer(s) of the last /eval
-/eval open                      open the UI: review chats, compare answers, leaderboard
+/quick-eval [model ...]                 ask; then pick a winner (terminal) or get a /quick-eval pick hint
+/quick-eval pick A|A,B|tie|none [note]  record the good answer(s) of the last /quick-eval
+/quick-eval open                        open the UI: review chats and their answers, leaderboard
 """
 import sys
 import threading
@@ -21,10 +21,8 @@ from .ui import TerminalUI, file_link  # noqa: E402
 
 PORT = 8765
 UI_URL = f"http://127.0.0.1:{PORT}/"
-NO_TURN = "Nothing to evaluate yet. Ask the agent something first, then run /eval."
+NO_TURN = "Nothing to evaluate yet. Ask the agent something first, then run /quick-eval."
 TRUST_QUESTION = "quick-eval needs permission to send your last question to other models. Save this permission?"
-# why: Hermes lets the last-loaded plugin silently take a duplicate command; /quick-eval can never clash.
-COMMANDS = ("eval", "quick-eval")
 PICK_TITLE = "Compare with which models? (space to toggle, enter to run)"
 WINNER_TITLE = "Which answer wins? (Esc to skip)"
 
@@ -94,7 +92,7 @@ class QuickEval:
     def cmd_pick(self, raw: str = "") -> str:
         run = self.last_run or self.store.latest_run()
         if not run:
-            return "No eval to pick from yet. Run /eval first."
+            return "No eval to pick from yet. Run /quick-eval first."
         return self.save_pick(run, raw)
 
     def run(self, names):
@@ -118,7 +116,7 @@ class QuickEval:
             return config
         if not self.ui.confirm(TRUST_QUESTION):
             return ("quick-eval can't call other models until it's allowed. "
-                    f"Run /eval in a terminal to approve it, or edit {file_link(self.config.path())}")
+                    f"Run /quick-eval in a terminal to approve it, or edit {file_link(self.config.path())}")
         self.config.save(settings.trust_patch())
         return self.config.load()
 
@@ -158,7 +156,7 @@ class QuickEval:
 
     def default_targets(self, defaults, config):
         if not defaults:
-            return ("No default models set. Use /eval <alias or model>, or add a default list in "
+            return ("No default models set. Use /quick-eval <alias or model>, or add a default list in "
                     f"{file_link(self.config.path())}")
         return evals.resolve_targets(defaults, settings.aliases(config))
 
@@ -197,6 +195,7 @@ def register(ctx):
     manager = getattr(ctx, "_manager", None)
     plugin = QuickEval(llm=LazyLLM(ctx), ui=TerminalUI(partial(getattr, manager, "_cli_ref", None)))
     ctx.register_hook("post_llm_call", plugin.on_post_llm_call)
-    for name in COMMANDS:
-        ctx.register_command(name, plugin.cmd_eval, description="Ask other models your last question; pick the best",
-                             args_hint="[model ...] | pick A|A,B|tie|none [note] | open")
+    # why: Hermes silently gives a shared command name to the last-loaded plugin; the plugin's own name can't clash
+    ctx.register_command("quick-eval", plugin.cmd_eval,
+                         description="Ask other models your last question; pick the best",
+                         args_hint="[model ...] | pick A|A,B|tie|none [note] | open")

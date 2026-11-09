@@ -4,7 +4,7 @@
 
 ## quick-eval
 
-Ask the agent something, then `/eval`: other models answer the same prompt, you mark the good answers, and a leaderboard adds them up. Details and what it touches: [plugins/quick-eval/README.md](plugins/quick-eval/README.md).
+Ask the agent something, then `/quick-eval`: other models answer the same prompt, you mark the good answers, and a leaderboard adds them up. Details and what it touches: [plugins/quick-eval/README.md](plugins/quick-eval/README.md).
 
 ### Install
 
@@ -19,9 +19,9 @@ Restart Hermes, then `/plugins` lists it. Once listed in the catalog: `hermes pl
 
 | Where | How |
 |---|---|
-| Terminal (`hermes`) | `/eval` → checklist of models → answers → pick the good ones |
-| Chat apps (Desktop, phone, gateways) | `/eval claude local` (name the models), then `/eval pick A,B` |
-| Review UI | `/eval open` → http://127.0.0.1:8765. Also a tab in `hermes dashboard`. No Hermes: `uv run python plugins/quick-eval/standalone.py --open` |
+| Terminal (`hermes`) | `/quick-eval` → checklist of models → answers → pick the good ones |
+| Chat apps (Desktop, phone, gateways) | `/quick-eval claude local` (name the models), then `/quick-eval pick A,B` |
+| Review UI | `/quick-eval open` → http://127.0.0.1:8765. Also a tab in `hermes dashboard`. No Hermes: `uv run python plugins/quick-eval/standalone.py --open` |
 
 ### Demo in Docker
 
@@ -41,5 +41,5 @@ hermes plugins validate "$PWD/plugins/quick-eval"   # catalog check; needs Herme
 ```
 
 - `plugins/<name>/`: one folder per plugin, picked up by the tests automatically.
-- `tests/test_contract.py`: manifest matches what `register()` adds. `tests/test_hermes_load.py`: Hermes's real loader. `tests/test_quick_eval_e2e.py`: `/eval` through real Hermes against a fake model server.
+- `tests/test_contract.py`: manifest matches what `register()` adds. `tests/test_hermes_load.py`: Hermes's real loader. `tests/test_quick_eval_e2e.py`: `/quick-eval` through real Hermes against a fake model server.
 - The fake context has no `ctx.llm`, like the validator's probe, so a `register()` that touches it fails here first.

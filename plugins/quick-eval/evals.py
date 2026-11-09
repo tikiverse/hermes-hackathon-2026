@@ -111,7 +111,7 @@ def format_eval(run: dict) -> str:
 
 
 def pick_hint(run: dict) -> str:
-    return f"Pick a winner: /eval pick {choices(run)} [note]"
+    return f"Pick a winner: /quick-eval pick {choices(run)} [note]"
 
 
 def pick_words(word: str, run: dict) -> tuple:
@@ -124,8 +124,8 @@ def pick_words(word: str, run: dict) -> tuple:
 
 
 def parse_pick(raw: str, run: dict) -> dict | str:
-    """why: '/eval pick b great answer' -> judgment; returns a usage string on bad input."""
-    usage = f"Usage: /eval pick {choices(run)} [note]  (several good: /eval pick A,B)"
+    """why: '/quick-eval pick b great answer' -> judgment; returns a usage string on bad input."""
+    usage = f"Usage: /quick-eval pick {choices(run)} [note]  (several good: /quick-eval pick A,B)"
     parts = raw.strip().split(None, 1)
     if not parts:
         return usage

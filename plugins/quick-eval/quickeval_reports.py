@@ -44,7 +44,7 @@ def list_runs(query):
 
 
 def turn_run(runs, turn):
-    """why: /eval knows the session and prompt, not the state.db message id, so match on both."""
+    """why: /quick-eval knows the session and prompt, not the state.db message id, so match on both."""
     key = (turn.get("session_id"), norm(turn["prompt"]))
     found = [r for r in runs if (r.get("session_id"), norm(r["prompt"])) == key]
     return max(found, key=quickeval_log.ts_of) if found else None

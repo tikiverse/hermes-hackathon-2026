@@ -19,7 +19,7 @@ def run_record(prompt, answers, session_id=None, message_id=None, params=None):
 
 
 def answer(label, model, text, **extra):
-    """why: answer A is the reply the user saw; B.. were asked again by /eval."""
+    """why: answer A is the reply the user saw; B.. were asked again by /quick-eval."""
     return {"label": label, "model": model, "text": text or "", **extra}
 
 

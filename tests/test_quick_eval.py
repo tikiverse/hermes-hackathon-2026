@@ -161,7 +161,7 @@ def test_eval_writes_a_v1_run(make):
     assert (rerun["provider"], rerun["error"]) == ("openrouter", None)
     assert rerun["latency_ms"] >= 0
     assert "── B · anthropic/claude-sonnet-5-5" in out
-    assert "/eval pick A|B|C|tie|none" in out
+    assert "/quick-eval pick A|B|C|tie|none" in out
 
 
 def test_eval_raw_model_ids(make):
@@ -256,15 +256,15 @@ def test_inline_winner_picker_saves_a_judgment(make):
 
 def test_skipping_the_inline_picker_leaves_a_hint(make):
     plugin = make(ui=FakeUI(interactive=True, winner=None, pick=keep_preselected))
-    assert "Pick a winner: /eval pick A|B|tie|none" in plugin.cmd_eval("claude")
+    assert "Pick a winner: /quick-eval pick A|B|tie|none" in plugin.cmd_eval("claude")
     assert [r["type"] for r in log(plugin)] == ["run"]
 
 
 def test_pick_flow(make):
     plugin = make()
-    assert "Run /eval first" in plugin.cmd_eval("pick B")
+    assert "Run /quick-eval first" in plugin.cmd_eval("pick B")
     plugin.cmd_eval("claude")
-    assert "Usage: /eval pick" in plugin.cmd_eval("pick")
+    assert "Usage: /quick-eval pick" in plugin.cmd_eval("pick")
     assert "Unknown choice 'Z'" in plugin.cmd_eval("pick Z")
     assert "B wins (anthropic/claude-sonnet-5-5)" in plugin.cmd_eval("pick b answered directly")
     judged = log(plugin)[-1]
@@ -293,11 +293,10 @@ def test_pick_after_restart_reads_log(make, module, tmp_path):
     assert "B wins" in second.cmd_eval("pick B")
 
 
-def test_eval_plus_a_name_no_other_plugin_can_take(load):
+def test_one_command_named_after_the_plugin(load):
     ctx = load("quick-eval").ctx
-    assert list(ctx.commands) == ["eval", "quick-eval"]
-    assert ctx.commands["eval"]["handler"] == ctx.commands["quick-eval"]["handler"]
-    assert "pick" in ctx.commands["eval"]["args_hint"]
+    assert list(ctx.commands) == ["quick-eval"]
+    assert "pick" in ctx.commands["quick-eval"]["args_hint"]
 
 
 def refuse(api, timeout):

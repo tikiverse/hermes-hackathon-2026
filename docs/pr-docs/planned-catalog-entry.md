@@ -39,11 +39,11 @@ Enter quick-eval in the Hermes Agent Plugin Hackathon. The entry **is** this PR:
 
 - [ ] **Install from catalog works** · as a new Hermes user
   1. `hermes plugins install quick-eval` (catalog branch)
-  2. In chat: ask anything, then `/eval`
+  2. In chat: ask anything, then `/quick-eval`
 
   **Pass if:**
   - other models' answers show beside yours
-  - `/eval open` shows the Review page
+  - `/quick-eval open` shows the Review page
 
 ## Non-Goals
 

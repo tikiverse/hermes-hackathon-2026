@@ -1,4 +1,4 @@
-/* why: quick-eval UI, framework-free. Review a chat turn and its /eval answers, see which model wins. */
+/* why: quick-eval UI, framework-free. Review a chat turn and its /quick-eval answers, see which model wins. */
 "use strict"
 
 const TABS = { review: "Review", board: "Leaderboard" }
@@ -255,7 +255,7 @@ function turn() { return EP.turns[EP.sel] }
 function judgmentOf(run) { return run ? run.judgment : null }
 function modelName() { return shortModel(pick(EP.session && EP.session.model, "model")) }
 
-/* why: a turn without an /eval run is one answer, A (the reply you saw); a run puts B.. beside it */
+/* why: a turn without an /quick-eval run is one answer, A (the reply you saw); a run puts B.. beside it */
 function answersOf(t) {
   const run = runFor(t)
   return run ? run.answers : [{ label: "A", model: EP.session && EP.session.model, text: t.response }]
@@ -348,7 +348,7 @@ function promptEl(text) {
 
 function focusEl(t) {
   const answers = answersOf(t)
-  const hint = answers.length > 1 ? null : h("p", { class: "ep-hint", text: "Run /eval in Hermes to compare this answer with other models." })
+  const hint = answers.length > 1 ? null : h("p", { class: "ep-hint", text: "Run /quick-eval in Hermes to compare this answer with other models." })
   return h("section", { class: "ep-now" + (answers.length > 1 ? " multi" : ""), "aria-label": "Turn under review" },
     h("span", { class: "ep-now-label", text: `TURN ${t.index + 1} · reviewing · ${ago(t.ts)}` }),
     promptEl(t.prompt), chipsEl(t), gridEl(answers), hint, expectedEl())
@@ -457,7 +457,7 @@ function cell(row, col) { return h("td", { text: col[1](row) }) }
 function boardRow(row) { return h("tr", {}, BOARD_COLS.map(cell.bind(null, row))) }
 
 function renderBoard() {
-  const empty = h("div", { class: "ep-empty", text: "No /eval runs in this range yet." })
+  const empty = h("div", { class: "ep-empty", text: "No /quick-eval runs in this range yet." })
   const table = h("table", { class: "ep-table" }, h("thead", {}, h("tr", {}, BOARD_COLS.map(headCell))),
     h("tbody", {}, EP.board.map(boardRow)))
   const note = h("p", { class: "ep-hint", text: "Good / judged: how often this model gave an answer you marked good. Sole win: it was the only good one." })
@@ -504,7 +504,7 @@ function onKey(e) {
   if (handler) handler(e)
 }
 
-/* why: polling keeps "Current chat" and new /eval runs fresh without a reload */
+/* why: polling keeps "Current chat" and new /quick-eval runs fresh without a reload */
 
 function shouldFollow(l) { return !!l && !EP.dirty && (l.id !== EP.sessionId || l.message_count !== EP.lastMsgCount) }
 

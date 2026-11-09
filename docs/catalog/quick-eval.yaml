@@ -5,7 +5,7 @@ repo: https://github.com/tikiverse/hermes-hackathon-2026
 sha: <40-hex main commit after PR 2 merges>
 subdir: plugins/quick-eval
 version: "0.1.0"
-description: "Ask other models your last question with /eval, see every answer side by side, and mark the good ones (several can be good). Runs and picks go to an append-only JSONL file; a review page (/eval open, or a Quick Eval dashboard tab) has Review and Leaderboard views. Disclosure — sends only your last prompt to the models you pick, through ctx.llm and your configured providers; checks 127.0.0.1 ports 11434, 1234 and 8000 for local model servers; writes ~/.hermes/evals/evals.jsonl and its own section of config.yaml (after you confirm); reads ~/.hermes/state.db read-only for the Review tab; /eval open serves the page on 127.0.0.1:8765; no shell commands, credentials, telemetry or self-updates."
+description: "Ask other models your last question with /quick-eval, see every answer side by side, and mark the good ones (several can be good). Runs and picks go to an append-only JSONL file; a review page (/quick-eval open, or a Quick Eval dashboard tab) has Review and Leaderboard views. Disclosure — sends only your last prompt to the models you pick, through ctx.llm and your configured providers; checks 127.0.0.1 ports 11434, 1234 and 8000 for local model servers; writes ~/.hermes/evals/evals.jsonl and its own section of config.yaml (after you confirm); reads ~/.hermes/state.db read-only for the Review tab; /quick-eval open serves the page on 127.0.0.1:8765; no shell commands, credentials, telemetry or self-updates."
 maintainer: tikiverse
 tier: community
 category: models
