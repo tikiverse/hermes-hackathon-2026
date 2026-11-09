@@ -225,7 +225,12 @@ async function openSession(id, live) {
   select(EP.turns.length - 1)
 }
 
-function shortModel(m) { return pick(m, "?").split("/").pop() }
+const HF_REPO = /models--[^/]*?--([^/]+)/
+
+function shortModel(m) {
+  const name = pick(m, "?"), hf = name.match(HF_REPO)
+  return hf ? hf[1] : name.split("/").pop()
+}
 
 function sessionSub(s) {
   const parts = [ago(sessionTime(s)), shortModel(s.model)]
@@ -256,7 +261,7 @@ function samePrompt(t, run) { return oneLine(run.prompt) === oneLine(t.prompt) }
 function runFor(t) { return EP.runs.find(samePrompt.bind(null, t)) || null }
 function turn() { return EP.turns[EP.sel] }
 function judgmentOf(run) { return run ? run.judgment : null }
-function modelName() { return pick(EP.session && EP.session.model, "model") }
+function modelName() { return shortModel(pick(EP.session && EP.session.model, "model")) }
 
 function draftFrom(j) {
   return j ? { verdict: j.verdict || null, note: pick(j.note, ""), expected: pick(j.expected, "") } : emptyDraft()

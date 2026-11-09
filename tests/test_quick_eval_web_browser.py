@@ -18,7 +18,8 @@ import quickeval_schema as schema  # noqa: E402
 import standalone  # noqa: E402
 
 LONG_TITLE = "Newest chat about a topic far too long to fit on one small phone line"
-SESSIONS = (("newest", "m-new", LONG_TITLE, 60), ("older", "m-old", "Older chat", 3 * 86400))
+HF_PATH = "/Users/x/.cache/huggingface/hub/models--org--Long-Model-4bit/snapshots/" + "0123456789abcdef" * 3
+SESSIONS = (("newest", "m-new", LONG_TITLE, 60), ("older", HF_PATH, "Older chat", 3 * 86400))
 
 
 SESSION_SQL = Path(__file__).resolve().parent / "quick_eval_ui_session.sql"
@@ -85,7 +86,7 @@ def test_rail_filters_narrow_the_chat_list(page):
     page.click(".ep-rail .ep-segb:has-text('Day')")
     sync_api.expect(rail_titles(page)).to_have_text(["Current chat"])
     page.click(".ep-rail .ep-segb:has-text('All')")
-    page.fill(".ep-search", "m-old")
+    page.fill(".ep-search", "long-model")
     sync_api.expect(rail_titles(page)).to_have_text(["Current chat", "Older chat"])
 
 
@@ -132,4 +133,6 @@ def test_phone_picker_opens_and_closes(page):
     page.wait_for_selector(".ep-railbtn:has-text('Older chat')")
     assert not page.is_visible(".ep-rail")
     assert page.evaluate("document.documentElement.scrollWidth") <= 390
+    assert page.evaluate("(s => s.scrollWidth - s.clientWidth)(document.querySelector('.ep-stage'))") <= 1
+    assert page.is_visible(".ep-who b:has-text('Long-Model-4bit')")
 

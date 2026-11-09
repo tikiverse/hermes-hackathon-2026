@@ -98,7 +98,7 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
 .ep-msg.user { align-self: flex-end; align-items: flex-end; }
 .ep-who { font-size: 12px; color: var(--ep-muted); margin-bottom: 4px; }
 .ep-who b { color: var(--ep-fg); font-weight: 600; }
-.ep-bubble { padding: 10px 14px; border-radius: 14px; background-color: var(--ep-panel); border: 1px solid var(--ep-line); white-space: pre-wrap; word-break: break-word; }
+.ep-bubble { padding: 10px 14px; border-radius: 14px; background-color: var(--ep-panel); border: 1px solid var(--ep-line); white-space: pre-wrap; }
 .ep-msg.user .ep-bubble { background-color: var(--ep-raise); border-bottom-right-radius: 4px; }
 .ep-msg.asst .ep-bubble { border-bottom-left-radius: 4px; }
 .ep-now { display: flex; flex-direction: column; gap: 12px; padding: 12px; margin: 0 -12px; border: 1px solid var(--ep-line); border-radius: calc(var(--ep-r-sm) + 12px); background-color: var(--ep-tint); scroll-margin-top: 12px; }
@@ -113,7 +113,7 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
 .ep-chip > summary::-webkit-details-marker { display: none; }
 .ep-fn { font-family: var(--ep-mono); color: var(--ep-accent); flex: none; }
 .ep-arg { font-family: var(--ep-mono); color: var(--ep-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
-.ep-pre { margin: 0; padding: 10px; border-top: 1px solid var(--ep-line); font: 12px/1.5 var(--ep-mono); white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow-y: auto; }
+.ep-pre { margin: 0; padding: 10px; border-top: 1px solid var(--ep-line); font: 12px/1.5 var(--ep-mono); white-space: pre-wrap; max-height: 320px; overflow-y: auto; }
 .ep-fold { font-size: 13px; color: var(--ep-muted); }
 .ep-fold > summary { cursor: pointer; }
 .ep-link { align-self: flex-start; }
@@ -122,15 +122,15 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
 .ep-cwrap { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
 .ep-prompt { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid var(--ep-line); border-radius: var(--ep-r); background-color: var(--ep-tint); }
 .ep-prompt-h { display: flex; align-items: center; }
-.ep-prompt-t { white-space: pre-wrap; word-break: break-word; }
+.ep-prompt-t { white-space: pre-wrap; }
 .ep-cgrid { display: grid; grid-template-columns: repeat(var(--ep-cols, 2), minmax(0, 1fr)); gap: 12px; align-items: stretch; }
 .ep-col { display: flex; flex-direction: column; min-width: 0; padding: 0; text-align: left; border: 1px solid var(--ep-line); border-radius: var(--ep-r-sm); background-color: var(--ep-panel); color: var(--ep-fg); transition-property: border-color, box-shadow; transition-duration: var(--ep-t); }
 .ep-col:hover { border-color: var(--ep-muted); }
 .ep-col.won { border-color: var(--ep-accent); box-shadow: 0 0 0 1px var(--ep-accent); }
 .ep-col-h { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; width: 100%; padding: 8px 12px; border-bottom: 1px solid var(--ep-line); font-size: 12px; color: var(--ep-muted); }
-.ep-col-h b { color: var(--ep-fg); font-size: 13px; min-width: 0; overflow-wrap: anywhere; }
+.ep-col-h b { color: var(--ep-fg); font-size: 13px; min-width: 0; }
 .ep-col-meta { flex-basis: 100%; }
-.ep-col-b { padding: 12px; white-space: pre-wrap; word-break: break-word; }
+.ep-col-b { padding: 12px; white-space: pre-wrap; }
 .ep-err { color: var(--ep-fail); }
 
 /* why: Leaderboard */
@@ -139,7 +139,7 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
 .ep-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
 .ep-table th { text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--ep-muted); padding: 8px 10px; border-bottom: 1px solid var(--ep-line); white-space: nowrap; }
 .ep-table td { padding: 9px 10px; border-bottom: 1px solid var(--ep-line); white-space: nowrap; }
-.ep-table td:first-child { font-family: var(--ep-mono); white-space: normal; overflow-wrap: anywhere; }
+.ep-table td:first-child { font-family: var(--ep-mono); white-space: normal; }
 
 /* why: save bar under the stage, not fixed, so it never covers dashboard chrome */
 .ep-bar { border-top: 1px solid var(--ep-line); background-color: var(--ep-panel); padding: 10px 16px; }
