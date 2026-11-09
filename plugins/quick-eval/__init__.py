@@ -1,7 +1,7 @@
 """why: quick-eval. /eval asks other models your last question and lets you pick the best answer.
 
 /eval [model ...]               ask; then pick a winner (terminal) or get a /eval pick hint
-/eval pick A|B|tie|none [note]  record the winner of the last /eval
+/eval pick A|A,B|tie|none [note]  record the good answer(s) of the last /eval
 /eval open                      open the UI: review chats, compare answers, leaderboard
 """
 import sys
@@ -59,7 +59,7 @@ def winner_words(run):
 
 
 def winner_labels(run):
-    return [f"{a['label']} · {a.get('model') or 'unknown'}" for a in run["answers"]] + ["Tie", "No good answer"]
+    return [f"{a['label']} · {a.get('model') or 'unknown'}" for a in run["answers"]] + ["All good", "No good answer"]
 
 
 class QuickEval:
@@ -142,7 +142,7 @@ class QuickEval:
         if isinstance(judged, str):
             return judged
         self.store.append(judged)
-        verdict = evals.verdict_text(run, judged["winner"])
+        verdict = evals.verdict_text(run, judged["winner"], judged.get("good"))
         return f"Saved: {verdict} for eval {run['id']}. Log: {file_link(self.store.path)}"
 
     def _options(self, config: dict) -> list[Option]:
@@ -181,9 +181,19 @@ class QuickEval:
             self.ui.say(f"Added {', '.join(s['name'] for s in servers.values())} to {file_link(self.config.path())}")
 
 
+class LazyLLM:
+    """why: `ctx.llm` exists only once Hermes runs; the catalog's capability probe calls register() without it."""
+
+    def __init__(self, ctx):
+        self.ctx = ctx
+
+    def complete(self, *args, **kwargs):
+        return self.ctx.llm.complete(*args, **kwargs)
+
+
 def register(ctx):
     manager = getattr(ctx, "_manager", None)
-    plugin = QuickEval(llm=ctx.llm, ui=TerminalUI(partial(getattr, manager, "_cli_ref", None)))
+    plugin = QuickEval(llm=LazyLLM(ctx), ui=TerminalUI(partial(getattr, manager, "_cli_ref", None)))
     ctx.register_hook("post_llm_call", plugin.on_post_llm_call)
     ctx.register_command("eval", plugin.cmd_eval, description="Ask other models your last question; pick the best",
-                         args_hint="[model ...] | pick A|B|tie|none [note] | open")
+                         args_hint="[model ...] | pick A|A,B|tie|none [note] | open")

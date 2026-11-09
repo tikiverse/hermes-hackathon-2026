@@ -21,7 +21,6 @@ class FakeCtx:
     skills: dict = field(default_factory=dict)
     injected: list = field(default_factory=list)
     posted: list = field(default_factory=list)
-    llm: object = None
 
     def register_tool(self, name, toolset, schema, handler, **kwargs):
         self.tools[name] = {"toolset": toolset, "schema": schema, "handler": handler, **kwargs}

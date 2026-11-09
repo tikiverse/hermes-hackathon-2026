@@ -153,6 +153,9 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
 
 /* why: phone: one column. The rail becomes a full-screen picker behind a header button. Bar: choices row, then note + save. */
 @media (max-width: 820px) {
+  .ep-table th { white-space: normal; overflow-wrap: normal; letter-spacing: .02em; }
+  .ep-table th, .ep-table td { padding: 8px 6px; }
+  .ep-table th:last-child, .ep-table td:last-child { display: none; }
   .quickeval { min-height: 0; }
   .ep-head { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
   .ep-brand, .ep-meta, .ep-wide, .quickeval kbd { display: none; }

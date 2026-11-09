@@ -1,4 +1,4 @@
-"""why: browser checks for the quick-eval page; runs with `uv run --with playwright pytest`, skips otherwise."""
+"""why: browser checks for the quick-eval page. Playwright is a dev dependency: a missing one fails, never skips."""
 import sqlite3
 import sys
 import threading
@@ -6,8 +6,7 @@ import time
 from pathlib import Path
 
 import pytest
-
-sync_api = pytest.importorskip("playwright.sync_api")
+from playwright import sync_api
 
 PLUGIN = Path(__file__).resolve().parent.parent / "plugins" / "quick-eval"
 SEED = Path(__file__).resolve().parent / "quick_eval_ui_seed.sql"
@@ -105,6 +104,21 @@ def test_compare_pick_winner_and_leaderboard(page):
     assert page.inner_text(".ep-table tbody tr:first-child td:first-child") == "m-rival"
 
 
+def test_compare_marks_several_answers_good(page):
+    page.click(".ep-link:has-text('Compare 3 answers')")
+    page.wait_for_selector(".ep-cgrid .ep-col")
+    page.click(".ep-cgrid .ep-col >> nth=1")
+    page.click(".ep-cgrid .ep-col >> nth=2")
+    assert page.locator(".ep-col.won").count() == 2
+    page.click(".ep-bar .ep-btn.pri")
+    page.wait_for_selector(".ep-rail-list .ep-label:has-text('B C')")
+    saved = judgments(page.evals_path)[-1]
+    assert (saved["good"], saved["winner"]) == (["B", "C"], "tie")
+    page.click(".ep-head .ep-segb:has-text('Leaderboard')")
+    page.wait_for_selector(".ep-table tbody tr")
+    assert "Good %" in page.text_content(".ep-table thead")
+
+
 def test_review_verdict_saves_a_judgment(page):
     page.keyboard.press("p")
     page.click(".ep-bar .ep-btn.pri")
@@ -142,3 +156,11 @@ def test_phone_picker_opens_and_closes(page):
     assert page.evaluate("(s => s.scrollWidth - s.clientWidth)(document.querySelector('.ep-stage'))") <= 1
     assert page.is_visible(".ep-who b:has-text('Long-Model-4bit')")
 
+
+
+def test_leaderboard_headers_never_break_inside_a_word_on_phone(page):
+    page.set_viewport_size({"width": 320, "height": 640})
+    page.click(".ep-head .ep-segb:has-text('Leaderboard')")
+    page.wait_for_selector(".ep-table th")
+    wraps = page.eval_on_selector_all(".ep-table th", "ths => ths.map(t => getComputedStyle(t).overflowWrap)")
+    assert set(wraps) == {"normal"}

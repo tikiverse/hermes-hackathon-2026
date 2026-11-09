@@ -247,7 +247,7 @@ def test_inline_winner_picker_saves_a_judgment(make):
     ui = FakeUI(interactive=True, winner=1)
     plugin = make(ui=ui)
     out = plugin.cmd_eval("claude")
-    assert ui.single_calls[0] == ["A · deepseek/deepseek-r1", "B · anthropic/claude-sonnet-5-5", "Tie",
+    assert ui.single_calls[0] == ["A · deepseek/deepseek-r1", "B · anthropic/claude-sonnet-5-5", "All good",
                                   "No good answer"]
     assert "Saved: B wins (anthropic/claude-sonnet-5-5)" in out
     run, judged = log(plugin)
@@ -269,6 +269,14 @@ def test_pick_flow(make):
     assert "B wins (anthropic/claude-sonnet-5-5)" in plugin.cmd_eval("pick b answered directly")
     judged = log(plugin)[-1]
     assert (judged["run_id"], judged["winner"], judged["note"]) == (log(plugin)[0]["id"], "B", "answered directly")
+
+
+def test_pick_several_good_answers(make):
+    plugin = make()
+    plugin.cmd_eval("claude")
+    assert "tie: A, B good" in plugin.cmd_eval("pick a,b both fine")
+    judged = log(plugin)[-1]
+    assert (judged["good"], judged["winner"], judged["note"]) == (["A", "B"], "tie", "both fine")
 
 
 def test_pick_tie_and_none(make):

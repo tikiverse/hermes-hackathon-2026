@@ -26,7 +26,8 @@ def state(tmp_path, monkeypatch):
 
 
 def two_model_run(prompt="hi", ts=None, models=("m0", "m1")):
-    answers = [schema.answer("A", models[0], "x"), schema.answer("B", models[1], "y", latency_ms=200)]
+    answers = [schema.answer("A", models[0], "x")]
+    answers += [schema.answer(chr(ord("B") + i), m, "y", latency_ms=200) for i, m in enumerate(models[1:])]
     record = schema.run_record(prompt, answers, session_id="s1")
     return reports.log().append({**record, "ts": ts or record["ts"]})
 
@@ -104,15 +105,34 @@ def test_filters():
     assert [r["prompt"] for r in reports.list_runs({"q": "CAT"})] == ["cats"]
 
 
-def test_leaderboard_counts_wins_only_in_contests():
+def test_leaderboard_counts_good_answers_and_sole_wins():
     first, second = two_model_run("a"), two_model_run("b")
     two_model_run("unjudged")
     reports.save_judgment({"run_id": first["id"], "winner": "B"})
     reports.save_judgment({"run_id": second["id"], "winner": "tie"})
     rows = {r["model"]: r for r in reports.leaderboard({})}
-    assert rows["m1"] == {"model": "m1", "answers": 3, "wins": 1, "contests": 2, "win_rate": 0.5}
-    assert (rows["m0"]["wins"], rows["m0"]["win_rate"]) == (0, 0.0)
+    assert rows["m1"] == {"model": "m1", "answers": 3, "judged": 2, "good": 2, "wins": 1, "good_rate": 1.0}
+    assert (rows["m0"]["good"], rows["m0"]["wins"], rows["m0"]["good_rate"]) == (1, 0, 0.5)
     assert reports.leaderboard({})[0]["model"] == "m1"
+
+
+def test_several_answers_can_be_good():
+    run = two_model_run("x", models=("m0", "m1", "m2"))
+    saved = reports.save_judgment({"run_id": run["id"], "good": ["C", "A"]})
+    assert (saved["judgment"]["good"], saved["judgment"]["winner"]) == (["A", "C"], "tie")
+    one = reports.save_judgment({"run_id": run["id"], "good": ["B"]})
+    assert one["judgment"]["winner"] == "B"
+    assert reports.save_judgment({"run_id": run["id"], "good": []})["judgment"]["winner"] == "none"
+    with pytest.raises(ValueError):
+        reports.save_judgment({"run_id": run["id"], "good": ["Z"]})
+
+
+def test_a_judgment_from_before_good_existed_still_counts():
+    run = two_model_run("old")
+    reports.log().append({"v": 1, "type": "judgment", "id": "j_old", "ts": 2, "run_id": run["id"], "winner": "B",
+                          "verdict": None, "note": "", "expected": ""})
+    rows = {r["model"]: r for r in reports.leaderboard({})}
+    assert (rows["m1"]["good"], rows["m0"]["good"]) == (1, 0)
 
 
 def test_stats():

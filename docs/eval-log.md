@@ -18,9 +18,10 @@ Append-only. A line is never rewritten; the newest `judgment` per run wins. Line
 `judgment`: your call on a run. Written by the `/eval` picker, `/eval pick`, or the UI.
 ```json
 {"v":1,"type":"judgment","id":"j_91ab","ts":1794170042.5,"run_id":"r_3f9a1c2e",
- "winner":"B","verdict":null,"note":"B answered directly","expected":""}
+ "winner":"B","good":["B"],"verdict":null,"note":"B answered directly","expected":""}
 ```
-- `winner`: an answer label, `tie`, `none`, or null.
+- `good`: every answer you marked acceptable (several can be). `[]` = none good; null = not judged.
+- `winner`: summary of `good`: the label when one is good, `tie` when several, `none` when none. Lines without `good` (older) read `tie` as every answer good.
 - `verdict`: `pass`, `fail`, or null; grades answer `A` (Review tab).
 - `expected`: what a correct reply looks like, for reuse as a test case.
 

@@ -23,13 +23,42 @@ def answer(label, model, text, **extra):
     return {"label": label, "model": model, "text": text or "", **extra}
 
 
-def judgment_record(run_id, winner=None, verdict=None, note="", expected=""):
+def judgment_record(run_id, winner=None, verdict=None, note="", expected="", good=None):
+    """why: `good` = every acceptable answer (several can be right); `winner` stays its one-word summary."""
     return {"v": 1, "type": JUDGMENT, "id": new_id("j"), "ts": time.time(), "run_id": run_id, "winner": winner,
-            "verdict": verdict, "note": note or "", "expected": expected or ""}
+            "good": good, "verdict": verdict, "note": note or "", "expected": expected or ""}
+
+
+def labels_of(run):
+    return [a["label"] for a in run["answers"]]
+
+
+def check_good(run, good):
+    unknown = [label for label in good or [] if label not in labels_of(run)]
+    if unknown:
+        raise ValueError(f"unknown answers {unknown}; use {'|'.join(labels_of(run))}")
+    return None if good is None else [label for label in labels_of(run) if label in good]
+
+
+def winner_of(good):
+    """why: one good answer wins outright; several tie; none means no good answer."""
+    return good[0] if len(good) == 1 else ("tie" if good else "none")
+
+
+def good_of(run, judgment):
+    """why: judgments from before `good` existed name one winner; a tie then meant every answer was fine."""
+    if not judgment:
+        return None
+    if judgment.get("good") is not None:
+        return judgment["good"]
+    winner = judgment.get("winner")
+    if winner is None:
+        return None
+    return labels_of(run) if winner == "tie" else [w for w in [winner] if w in labels_of(run)]
 
 
 def check_winner(run, winner):
-    labels = [a["label"] for a in run["answers"]]
+    labels = labels_of(run)
     if winner is not None and winner not in labels and winner not in OUTCOMES:
         raise ValueError(f"unknown winner {winner!r}; use {'|'.join(labels + list(OUTCOMES))}")
     return winner

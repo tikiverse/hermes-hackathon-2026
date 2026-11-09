@@ -25,7 +25,7 @@ function freshState() {
 }
 
 function emptyDraft() { return { verdict: null, note: "", expected: "" } }
-function emptyPick() { return { winner: null, note: "" } }
+function emptyPick() { return { good: null, note: "" } }
 function pick(a, b) { return a || b }
 function ignore() { return undefined }
 function noJson() { return {} }
@@ -314,8 +314,8 @@ function expectedEl() {
 function compareLink(t) {
   const run = runFor(t)
   if (!run || run.answers.length < 2) return h("p", { class: "ep-hint", text: "Run /eval in Hermes to compare this answer with other models." })
-  const winner = judgmentOf(run) && judgmentOf(run).winner
-  const label = `Compare ${run.answers.length} answers` + (winner ? ` · winner ${winner}` : "") + " →"
+  const good = goodOf(run, judgmentOf(run))
+  const label = `Compare ${run.answers.length} answers` + (good ? ` · good: ${goodText(good)}` : "") + " →"
   return h("button", { class: "ep-btn ep-link", onclick: openCompare.bind(null, run.id) }, label)
 }
 
@@ -384,16 +384,35 @@ function renderReview() {
   if (now && now.scrollIntoView) now.scrollIntoView({ block: "start" })
 }
 
-/* why: Compare tab: one prompt, one column per model, pick a winner, next unjudged */
+/* why: Compare tab: one prompt, one column per model, mark every good answer, next unjudged */
 
 function isUnjudged(run) { return !run.judgment || !run.judgment.winner }
 function shownRuns() { return EP.cmp.unjudged ? EP.cmp.runs.filter(isUnjudged) : EP.cmp.runs }
 function cmpRun() { return shownRuns()[EP.cmp.sel] || null }
-function pickFrom(j) { return j ? { winner: j.winner, note: pick(j.note, "") } : emptyPick() }
+function labelsOf(run) { return run.answers.map(labelOfAnswer) }
+function labelOfAnswer(a) { return a.label }
+
+/* why: judgments from before `good` existed name one winner; a tie then meant every answer was fine */
+const LEGACY_GOOD = { tie: labelsOf, none: noLabels }
+function noLabels() { return [] }
+
+function goodOf(run, j) {
+  if (!j) return null
+  if (j.good != null) return j.good
+  if (j.winner == null) return null
+  return (LEGACY_GOOD[j.winner] || oneLabel.bind(null, j.winner))(run)
+}
+function oneLabel(label) { return [label] }
+
+function pickFrom(run) {
+  const j = run && judgmentOf(run)
+  return j ? { good: goodOf(run, j), note: pick(j.note, "") } : emptyPick()
+}
+function isGood(label) { return (EP.cmp.draft.good || []).includes(label) }
 
 function cmpSelect(i) {
   EP.cmp.sel = Math.max(0, Math.min(i, shownRuns().length - 1))
-  EP.cmp.draft = pickFrom(judgmentOf(cmpRun()))
+  EP.cmp.draft = pickFrom(cmpRun())
   EP.cmp.dirty = false
   render()
 }
@@ -402,7 +421,7 @@ async function loadCompare() {
   const keep = cmpRun() && cmpRun().id
   EP.cmp.runs = (await call("/runs" + query({ multi: "1" }))).runs
   EP.cmp.sel = Math.max(0, shownRuns().findIndex(sameId.bind(null, keep)))
-  EP.cmp.draft = pickFrom(judgmentOf(cmpRun()))
+  EP.cmp.draft = pickFrom(cmpRun())
   EP.cmp.dirty = false
 }
 
@@ -412,19 +431,29 @@ async function openCompare(runId) {
   cmpSelect(Math.max(0, shownRuns().findIndex(sameId.bind(null, runId))))
 }
 
-function setWinner(w) {
-  EP.cmp.draft.winner = EP.cmp.draft.winner === w ? null : w
+function setGood(good) {
+  EP.cmp.draft.good = labelsOf(cmpRun()).filter(isIn.bind(null, good))
   EP.cmp.dirty = true
   swap(".ep-cgrid", gridEl(cmpRun()))
   swap(".ep-bar", compareBarEl())
 }
+
+function isIn(list, item) { return list.includes(item) }
+
+function toggleGood(label) {
+  const good = EP.cmp.draft.good || []
+  setGood(good.includes(label) ? good.filter(isNot.bind(null, label)) : good.concat(label))
+}
+function isNot(label, other) { return other !== label }
+function setAllGood() { setGood(labelsOf(cmpRun())) }
+function setNoneGood() { setGood([]) }
 
 function hasLabel(label, a) { return a.label === label }
 function answerName(a) { return shortModel(pick(a.model, "unknown")) }
 
 function runButton(run, i) {
   const j = run.judgment
-  const badge = j && j.winner ? h("span", { class: "ep-label", text: j.winner }) : null
+  const badge = j && j.winner ? h("span", { class: "ep-label", text: goodText(goodOf(run, j)) }) : null
   return h("button", { class: "ep-item" + onClass(i === EP.cmp.sel), onclick: cmpSelect.bind(null, i), title: run.prompt },
     h("span", { class: "ep-item-t" }, clip(oneLine(run.prompt), RAIL_CHARS), grow(), badge),
     h("span", { class: "ep-item-s", text: `${run.answers.length} answers · ${ago(run.ts)}` }))
@@ -443,9 +472,12 @@ function answerBody(a) {
   return h("span", { class: "ep-col-b", text: pick(a.text, "(empty)") })
 }
 
+function goodText(good) { return good && good.length ? good.join(" ") : "none" }
+
 function answerCol(a) {
-  const won = EP.cmp.draft.winner === a.label
-  return h("button", { class: "ep-col" + (won ? " won" : ""), onclick: setWinner.bind(null, a.label), title: `pick ${a.label}` },
+  const good = isGood(a.label)
+  return h("button", { class: "ep-col" + (good ? " won" : ""), onclick: toggleGood.bind(null, a.label),
+    "aria-pressed": String(good), title: `${a.label} is good` },
     h("span", { class: "ep-col-h" }, h("span", { class: "ep-label", text: a.label }), h("b", { text: answerName(a) }),
       h("span", { class: "ep-col-meta", text: answerMeta(a) })), answerBody(a))
 }
@@ -461,19 +493,23 @@ function cmpStageEl(run) {
       h("div", { class: "ep-prompt-t", text: run.prompt })), gridEl(run)))
 }
 
-function winnerButton(w, label) {
-  return h("button", { class: "ep-segb" + onClass(EP.cmp.draft.winner === w), onclick: setWinner.bind(null, w) }, label)
+function labelButton(a) {
+  return h("button", { class: "ep-segb" + onClass(isGood(a.label)), "aria-pressed": String(isGood(a.label)),
+    onclick: toggleGood.bind(null, a.label) }, a.label)
 }
 
-function labelButton(a) { return winnerButton(a.label, a.label) }
+function isAll() { const g = EP.cmp.draft.good; return !!g && g.length === cmpRun().answers.length }
+function isNone() { const g = EP.cmp.draft.good; return !!g && !g.length }
 function onCmpNote(e) { EP.cmp.draft.note = e.target.value; EP.cmp.dirty = true }
 
 function compareBarEl() {
-  const note = h("input", { class: "ep-input ep-note", placeholder: "Note: why this one?", "aria-label": "Note",
+  const note = h("input", { class: "ep-input ep-note", placeholder: "Note: why these?", "aria-label": "Note",
     value: EP.cmp.draft.note, oninput: onCmpNote })
-  return h("footer", { class: "ep-bar", "aria-label": "Pick a winner" }, h("div", { class: "ep-bar-in" },
-    h("span", { class: "ep-meta", text: "Winner" }), h("div", { class: "ep-seg" }, cmpRun().answers.map(labelButton),
-      winnerButton("tie", "Tie"), winnerButton("none", "None")), note, saveButton(EP.cmp.dirty, saveCompare)))
+  return h("footer", { class: "ep-bar", "aria-label": "Mark the good answers" }, h("div", { class: "ep-bar-in" },
+    h("span", { class: "ep-meta", text: "Good" }), h("div", { class: "ep-seg" }, cmpRun().answers.map(labelButton),
+      h("button", { class: "ep-segb" + onClass(isAll()), onclick: setAllGood }, "All"),
+      h("button", { class: "ep-segb" + onClass(isNone()), onclick: setNoneGood }, "None")),
+    note, saveButton(EP.cmp.dirty, saveCompare)))
 }
 
 function replaceRun(saved, run) { return run.id === saved.id ? saved : run }
@@ -488,7 +524,7 @@ async function persistCompare(run) {
   const saved = await send("/judgments", { run_id: run.id, ...EP.cmp.draft })
   EP.cmp.runs = EP.cmp.runs.map(replaceRun.bind(null, saved))
   EP.stats = await call("/stats")
-  toast(EP.cmp.draft.winner ? `Saved ✓ · winner ${EP.cmp.draft.winner}` : "Saved ✓")
+  toast(EP.cmp.draft.good ? `Saved ✓ · good: ${goodText(EP.cmp.draft.good)}` : "Saved ✓")
 }
 
 function advanceCompare() { cmpSelect(EP.cmp.unjudged ? EP.cmp.sel : nextUnjudged()) }
@@ -509,11 +545,13 @@ function renderCompare() {
 
 /* why: Leaderboard tab: one row per model across the runs in range */
 
-const BOARD_COLS = [["Model", boardModel], ["Wins", boardWins], ["Win %", boardWinRate], ["Answers", boardAnswers]]
+const BOARD_COLS = [["Model", boardModel], ["Good", boardGood], ["Good %", boardGoodRate], ["Sole wins", boardWins],
+  ["Answers", boardAnswers]]
 
 function boardModel(r) { return shortModel(r.model) }
-function boardWins(r) { return `${r.wins} / ${r.contests}` }
-function boardWinRate(r) { return pct(r.win_rate) }
+function boardGood(r) { return `${r.good} / ${r.judged}` }
+function boardGoodRate(r) { return pct(r.good_rate) }
+function boardWins(r) { return String(r.wins) }
 function boardAnswers(r) { return String(r.answers) }
 function headCell(col) { return h("th", { text: col[0] }) }
 function cell(row, col) { return h("td", { text: col[1](row) }) }
@@ -523,7 +561,7 @@ function renderBoard() {
   const empty = h("div", { class: "ep-empty", text: "No /eval runs in this range yet." })
   const table = h("table", { class: "ep-table" }, h("thead", {}, h("tr", {}, BOARD_COLS.map(headCell))),
     h("tbody", {}, EP.board.map(boardRow)))
-  const note = h("p", { class: "ep-hint", text: "Wins / contests: a contest is an /eval run where you picked a winner. Tie and None count as no win." })
+  const note = h("p", { class: "ep-hint", text: "Good / judged: how often this model gave an answer you marked good. Sole win: it was the only good one." })
   fill(EP.els.body, h("div", { class: "ep-board" }, h("div", { class: "ep-toolbar" }, rangeEl()),
     EP.board.length ? table : empty, note))
 }
@@ -547,17 +585,17 @@ function prevTurn(e) { e.preventDefault(); select(EP.sel - 1) }
 function nextRun(e) { e.preventDefault(); cmpSelect(EP.cmp.sel + 1) }
 function prevRun(e) { e.preventDefault(); cmpSelect(EP.cmp.sel - 1) }
 
-function winnerKey(e) {
+function goodKey(e) {
   const run = cmpRun()
   const label = e.key.toUpperCase()
-  if (run && run.answers.some(hasLabel.bind(null, label))) setWinner(label)
+  if (run && run.answers.some(hasLabel.bind(null, label))) toggleGood(label)
 }
 
 const KEYMAPS = {
   review: { j: nextTurn, ArrowDown: nextTurn, k: prevTurn, ArrowUp: prevTurn, p: toggleVerdict.bind(null, "pass"),
     f: toggleVerdict.bind(null, "fail") },
-  compare: { j: nextRun, ArrowDown: nextRun, k: prevRun, ArrowUp: prevRun, t: setWinner.bind(null, "tie"),
-    n: setWinner.bind(null, "none"), a: winnerKey, b: winnerKey, c: winnerKey, d: winnerKey, e: winnerKey },
+  compare: { j: nextRun, ArrowDown: nextRun, k: prevRun, ArrowUp: prevRun, t: setAllGood,
+    n: setNoneGood, a: goodKey, b: goodKey, c: goodKey, d: goodKey, e: goodKey },
   board: {},
 }
 

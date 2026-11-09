@@ -114,23 +114,31 @@ def pick_hint(run: dict) -> str:
     return f"Pick a winner: /eval pick {choices(run)} [note]"
 
 
+def pick_words(word: str, run: dict) -> tuple:
+    """why: 'b' is one winner, 'a,b,c' marks several good answers, tie/none are outcomes."""
+    if word.lower() in schema.OUTCOMES:
+        winner = schema.check_winner(run, word.lower())
+        return winner, schema.good_of(run, {"winner": winner})
+    good = schema.check_good(run, [w.strip().upper() for w in word.split(",") if w.strip()])
+    return schema.winner_of(good), good
+
+
 def parse_pick(raw: str, run: dict) -> dict | str:
     """why: '/eval pick b great answer' -> judgment; returns a usage string on bad input."""
+    usage = f"Usage: /eval pick {choices(run)} [note]  (several good: /eval pick A,B)"
     parts = raw.strip().split(None, 1)
     if not parts:
-        return f"Usage: /eval pick {choices(run)} [note]"
-    word = parts[0]
-    winner = word.lower() if word.lower() in schema.OUTCOMES else word.upper()
+        return usage
     try:
-        schema.check_winner(run, winner)
+        winner, good = pick_words(parts[0], run)
     except ValueError:
-        return f"Unknown choice {word!r}. Usage: /eval pick {choices(run)} [note]"
-    return schema.judgment_record(run["id"], winner, note=parts[1].strip() if len(parts) > 1 else "")
+        return f"Unknown choice {parts[0]!r}. {usage}"
+    return schema.judgment_record(run["id"], winner, note=parts[1].strip() if len(parts) > 1 else "", good=good)
 
 
-def verdict_text(run: dict, winner: str) -> str:
+def verdict_text(run: dict, winner: str, good: list | None = None) -> str:
     if winner == "tie":
-        return "tie"
+        return f"tie: {', '.join(good or schema.labels_of(run))} good"
     if winner == "none":
         return "no good answer"
     return f"{winner} wins ({schema.winner_model(run, winner)})"
