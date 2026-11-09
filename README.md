@@ -20,7 +20,11 @@ No Hermes yet: install it, pick a model provider, then run the line above.
 curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 hermes setup
 ```
-Or skip installing: [Demo in Docker](#demo-in-docker) needs only Docker and an OpenRouter key.
+Just try it (Mac or Linux; no account, no key, your Hermes untouched): installs what's missing, two small local models (~1.5 GB), opens Hermes.
+```
+curl -fsSL https://raw.githubusercontent.com/tikiverse/hermes-hackathon-2026/quick-eval-ui/scripts/demo.sh | sh
+```
+Ask "What happened at Tiananmen Square in 1989?", then `/quick-eval`: DeepSeek-R1 refuses.
 
 Models: nothing to configure. `/quick-eval` lists the models Hermes is signed in to, plus Ollama, LM Studio or vLLM if one runs on this machine.
 
@@ -33,15 +37,6 @@ Restart `hermes` after installing.
 | Terminal (`hermes`) | `/quick-eval` → checklist of models → answers → pick the good ones |
 | Chat apps (Desktop, phone, gateways) | `/quick-eval claude local` (name the models), then `/quick-eval pick A,B` |
 | Review UI | `/quick-eval open` → http://127.0.0.1:8765. Also a tab in `hermes dashboard`. No Hermes: `uv run python plugins/quick-eval/standalone.py --open` |
-
-### Demo in Docker
-
-```
-export OPENROUTER_API_KEY=sk-or-...
-docker compose run --rm hermes
-```
-
-Main model DeepSeek-R1 (it dodges "What happened at Tiananmen Square in 1989?"), compared against the aliases in [docker/config.yaml](docker/config.yaml). Ollama running on your machine shows up too. State lives in the `hermes-home` volume; `docker compose down -v` resets it.
 
 ## Develop
 
