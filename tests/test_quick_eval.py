@@ -293,9 +293,10 @@ def test_pick_after_restart_reads_log(make, module, tmp_path):
     assert "B wins" in second.cmd_eval("pick B")
 
 
-def test_only_one_command_is_registered(load):
+def test_eval_plus_a_name_no_other_plugin_can_take(load):
     ctx = load("quick-eval").ctx
-    assert list(ctx.commands) == ["eval"]
+    assert list(ctx.commands) == ["eval", "quick-eval"]
+    assert ctx.commands["eval"]["handler"] == ctx.commands["quick-eval"]["handler"]
     assert "pick" in ctx.commands["eval"]["args_hint"]
 
 

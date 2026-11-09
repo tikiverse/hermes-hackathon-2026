@@ -23,6 +23,8 @@ PORT = 8765
 UI_URL = f"http://127.0.0.1:{PORT}/"
 NO_TURN = "Nothing to evaluate yet. Ask the agent something first, then run /eval."
 TRUST_QUESTION = "quick-eval needs permission to send your last question to other models. Save this permission?"
+# why: Hermes lets the last-loaded plugin silently take a duplicate command; /quick-eval can never clash.
+COMMANDS = ("eval", "quick-eval")
 PICK_TITLE = "Compare with which models? (space to toggle, enter to run)"
 WINNER_TITLE = "Which answer wins? (Esc to skip)"
 
@@ -195,5 +197,6 @@ def register(ctx):
     manager = getattr(ctx, "_manager", None)
     plugin = QuickEval(llm=LazyLLM(ctx), ui=TerminalUI(partial(getattr, manager, "_cli_ref", None)))
     ctx.register_hook("post_llm_call", plugin.on_post_llm_call)
-    ctx.register_command("eval", plugin.cmd_eval, description="Ask other models your last question; pick the best",
-                         args_hint="[model ...] | pick A|A,B|tie|none [note] | open")
+    for name in COMMANDS:
+        ctx.register_command(name, plugin.cmd_eval, description="Ask other models your last question; pick the best",
+                             args_hint="[model ...] | pick A|A,B|tie|none [note] | open")
