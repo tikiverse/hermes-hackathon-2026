@@ -11,8 +11,16 @@ model:
 # why telemetry: Hermes 0.23+ asks about shared metrics on first start, and that question eats the first message.
 telemetry:
   shared_metrics: {enabled: false, send: false, offer_version: 2}
+# why tools off: a 0.5B model given tools calls them instead of answering. Hermes Desktop always adds its UI tools;
+# tool_search off drops the tool_call bridge it misused, disabled_toolsets drops the rest that can be dropped.
 platform_toolsets:
   cli: []
+  desktop: []
+  local: []
+agent:
+  disabled_toolsets: [project, catalog]
+tools:
+  tool_search: {enabled: "off"}
 providers:
   ollama: {name: Ollama, api: http://localhost:11434/v1}
 plugins:
