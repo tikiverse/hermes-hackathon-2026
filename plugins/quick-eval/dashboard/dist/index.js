@@ -346,12 +346,27 @@ function promptEl(text) {
   return el
 }
 
+/* why: /quick-eval-full runs carry the earlier messages B.. saw; show exactly those (no tool steps), folded */
+function contextBubble(m) {
+  return m.role === "user" ? bubble("user", "You", m.content) : bubble("asst", modelName(), m.content)
+}
+
+function contextEl(run) {
+  const history = run ? run.history : null
+  if (!history) return null
+  const n = history.length
+  if (!n) return h("p", { class: "ep-fold", text: "Context: none, this was the chat's first message" })
+  const title = `Context the other models saw: ${n} earlier message${n === 1 ? "" : "s"}`
+  return h("details", { class: "ep-fold ep-context" }, h("summary", { text: title }),
+    h("div", { class: "ep-context-list" }, history.map(contextBubble)))
+}
+
 function focusEl(t) {
   const answers = answersOf(t)
   const hint = answers.length > 1 ? null : h("p", { class: "ep-hint", text: "Run /quick-eval in Hermes to compare this answer with other models." })
   return h("section", { class: "ep-now" + (answers.length > 1 ? " multi" : ""), "aria-label": "Turn under review" },
     h("span", { class: "ep-now-label", text: `TURN ${t.index + 1} · reviewing · ${ago(t.ts)}` }),
-    promptEl(t.prompt), chipsEl(t), gridEl(answers), hint, expectedEl())
+    contextEl(runFor(t)), promptEl(t.prompt), chipsEl(t), gridEl(answers), hint, expectedEl())
 }
 
 function turnEl(t, i) { return i === EP.sel ? focusEl(t) : pastEl(t, i) }
