@@ -46,13 +46,14 @@ def fake_open():
 
 @pytest.mark.parametrize("state", STATES, ids=state_id)
 @pytest.mark.parametrize("command", COMMANDS)
+@pytest.mark.parametrize("handler", ["cmd_eval", "cmd_eval_full"])
 def test_every_command_in_every_state_says_what_next_and_calls_only_when_allowed(load, tmp_path, monkeypatch,
-                                                                                    state, command):
+                                                                                    state, command, handler):
     module = load("quick-eval").module
     monkeypatch.setattr(module, "open_ui", fake_open)
     asked, trusted, has_run, models = state
     plugin = plugin_in(module, tmp_path, *state)
-    reply = plugin.cmd_eval(command)
+    reply = getattr(plugin, handler)(command)
     assert reply.strip()
     if command != "open":
         assert "/quick-eval" in reply, reply

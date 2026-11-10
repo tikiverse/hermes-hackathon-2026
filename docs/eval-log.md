@@ -13,6 +13,7 @@ Append-only. A line is never rewritten; the newest `judgment` per run wins. Line
  "params":{"temperature":0.7,"max_tokens":1024,"timeout":120}}
 ```
 - `A` is the reply you saw. `B`.. were asked again by `/quick-eval`, with only the prompt (no system prompt, no history).
+- `history` (only on runs from `/quick-eval-full`): the earlier messages `B`.. saw before the prompt, as `[{"role":"user"|"assistant","content":"…"}]`. User and assistant text only; tool calls, tool results, and everything from the last user message on are left out. `[]` means the chat had no earlier messages. Lines without `history` are prompt-only runs.
 - `params`: the settings every `B`.. answer got (config `plugins.entries.quick-eval.params`). Same for all, so models compare like for like. `A` kept the chat's own settings.
 
 `judgment`: your call on a run. Written by the `/quick-eval` picker, `/quick-eval pick`, or the UI.
