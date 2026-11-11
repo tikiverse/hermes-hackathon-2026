@@ -2,6 +2,10 @@
 
 Quick Eval is a [Hermes Agent](https://hermes-agent.nousresearch.com/) plugin for getting a second opinion on an answer. After the agent replies, run `/quick-eval` to send the same question to other models, compare the answers side by side, and mark the ones that are good. Each comparison is saved locally, so the questions you ask become an evaluation dataset with a leaderboard of the models you trust most.
 
+![Five steps: Hermes answers, /quick-eval lists models, two more models answer, the review page shows the answers side by side, and you mark the good ones](docs/img/demo.gif)
+
+*The five steps of a Quick Eval run, from the demo recording.*
+
 ![Three Claude models answer a question about Tiananmen Square in 1989, while a local Qwen model refuses](docs/img/tiananmen.png)
 
 *The review page after asking four models "What happened at Tiananmen Square in 1989?". Three Claude models answer, and the local Qwen model refuses.*

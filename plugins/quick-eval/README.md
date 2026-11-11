@@ -2,6 +2,10 @@
 
 Quick Eval is a [Hermes Agent](https://hermes-agent.nousresearch.com/) plugin for getting a second opinion on an answer. After the agent replies, run `/quick-eval` to send the same question to other models, compare the answers side by side, and mark the ones that are good. Every comparison is saved to a local JSONL file, so over time you build an evaluation dataset from the questions you ask, and a leaderboard shows which models you trust most.
 
+![Five steps: Hermes answers, /quick-eval lists models, two more models answer, the review page shows the answers side by side, and you mark the good ones](https://raw.githubusercontent.com/tikiverse/quick-eval/main/docs/img/demo.gif)
+
+*The five steps of a Quick Eval run, from the demo recording.*
+
 ![Three Claude models answer a question about Tiananmen Square in 1989, while a local Qwen model refuses](https://raw.githubusercontent.com/tikiverse/quick-eval/main/docs/img/tiananmen.png)
 
 *The review page after asking four models "What happened at Tiananmen Square in 1989?". Three Claude models answer, and the local Qwen model refuses.*
@@ -50,7 +54,7 @@ A local demo runs two small Ollama models, so it needs no account or API key. Th
 | `/quick-eval` | Shows your last question, the models you can name, and the available commands. |
 | `/quick-eval <model> [<model> ...]` | Sends your last question to each named model in parallel and prints the answers. |
 | `/quick-eval pick A,B [note]` | Marks the good answers of the last run. Several answers can be good. Use `none` if no answer is good. |
-| `/quick-eval open` | Opens the review page at `http://127.0.0.1:8765`. |
+| `/quick-eval open` | Opens the review page: the **Quick Eval** page in Hermes Desktop when you run it in a Desktop chat, otherwise a browser page at `http://127.0.0.1:8765`. |
 | `/quick-eval allow` | Grants the one-time permission to send your questions to other models. Quick Eval asks for this on first use. |
 
 A model name can be any name that `/quick-eval` lists, a provider model ID such as `anthropic/claude-sonnet-5.5`, or `model@provider`. A name that matches none of these is treated as a typo, and Quick Eval calls no model.
@@ -92,7 +96,7 @@ plugins:
 
 ### Review page
 
-Run `/quick-eval open`, or open the **Quick Eval** tab in `hermes dashboard`. The page reads your Hermes chat history and has two tabs:
+Run `/quick-eval open`, or open the **Quick Eval** tab in `hermes dashboard`. In Hermes Desktop, the command shows the **Quick Eval** page from the sidebar. In a terminal, it always opens the browser page, even when Hermes Desktop is installed. The page reads your Hermes chat history and has two tabs:
 
 - **Review** lists your chats, with the current one pinned. Each chat turn shows the agent's reply, or one column per model after a `/quick-eval` run. Select every good answer, then optionally add a note and the answer you expected.
 - **Leaderboard** shows, for each model, how often its answer was marked good and how many times it was the only good answer.
@@ -117,7 +121,7 @@ Quick Eval appends one `run` line per `/quick-eval` and one `judgment` line per 
 - **Local probes.** `/quick-eval` checks `localhost` ports 11434, 1234, 8000, and 8080 for local model servers.
 - **Files written.** `~/.hermes/evals/evals.jsonl` (append-only), and the plugin's own section of `config.yaml` for the `/quick-eval allow` permission and any local server you name.
 - **Files read.** `~/.hermes/state.db`, read-only, for the review page.
-- **Local server.** `/quick-eval open` serves the review page on `127.0.0.1:8765` until Hermes exits.
+- **Local server.** `/quick-eval open` in a terminal serves the review page on `127.0.0.1:8765` until Hermes exits. In Hermes Desktop it uses the plugin's Desktop page and starts no server.
 
 Quick Eval runs no shell commands, stores no credentials, sends no telemetry, and doesn't update itself.
 
