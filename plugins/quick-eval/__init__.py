@@ -25,6 +25,9 @@ import standalone  # noqa: E402
 from . import discover, evals, settings  # noqa: E402
 
 log = logging.getLogger(__name__)
+# why: Desktop ships a Desktop page off until switched on once, and nothing tells us if it is on: name the switch
+DESKTOP_OPENED = ("quick-eval: opened the Quick Eval page in Hermes Desktop (sidebar: Quick Eval). Nothing opened? "
+                  "Turn Quick Eval on once in Desktop: Capabilities > Plugins")
 PORT = 8765
 UI_URL = f"http://127.0.0.1:{PORT}/"
 NO_TURN = "Nothing to evaluate yet. Ask the agent something first, then run /quick-eval."
@@ -54,7 +57,7 @@ def open_in_desktop():
     except ImportError:
         return open_ui()
     broadcast_plugin_event("quick-eval", "open")
-    return "quick-eval: opened the Quick Eval page in Hermes Desktop (sidebar: Quick Eval)"
+    return DESKTOP_OPENED
 
 
 OPENERS = {"desktop": open_in_desktop}  # why: surface Hermes passes (`platform`) -> opener; others get the browser

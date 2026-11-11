@@ -375,6 +375,7 @@ def test_open_in_a_desktop_chat_asks_the_desktop_page_to_show_itself(make, opene
     out = make().cmd_eval("open", platform="desktop")
     assert events.sent == [("quick-eval", "open", None)]
     assert opened == [] and "Hermes Desktop" in out
+    assert "Capabilities > Plugins" in out  # why: Desktop's Desktop page is off until switched on once
 
 
 @pytest.mark.parametrize("platform", [None, "tui", "cli", "telegram"])
