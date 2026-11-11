@@ -256,9 +256,9 @@ def test_pick_after_restart_reads_log(make, module, tmp_path):
     assert "Marked good: B" in second.cmd_eval("pick B")
 
 
-def test_one_command_named_after_the_plugin(load):
+def test_commands_are_named_after_the_plugin(load):
     ctx = load("quick-eval").ctx
-    assert list(ctx.commands) == ["quick-eval"]
+    assert list(ctx.commands) == ["quick-eval", "quick-eval-full"]
     assert "pick" in ctx.commands["quick-eval"]["args_hint"]
 
 
@@ -332,3 +332,85 @@ def test_hermes_older_than_the_manifest_floor_is_refused_with_a_fix(module, vers
     assert (message is not None) == refused
     if refused:
         assert "hermes update" in message and module.min_hermes() in message
+
+
+CHAT = [
+    {"role": "user", "content": "I'm studying modern Chinese history."},
+    {"role": "assistant", "content": "Great, ask me anything."},
+    {"role": "user", "content": [{"type": "text", "text": "Who led China in 1989?"},
+                                 {"type": "image_url", "image_url": {"url": "data:image/png;base64,AAAA"}}]},
+    {"role": "assistant", "content": "", "tool_calls": [{"id": "c1", "type": "function"}]},
+    {"role": "tool", "tool_call_id": "c1", "content": "search results"},
+    {"role": "assistant", "content": "Deng Xiaoping."},
+    {"role": "user", "content": "What happened at Tiananmen Square in 1989?"},
+    {"role": "assistant", "content": "", "tool_calls": [{"id": "c2", "type": "function"}]},
+    {"role": "tool", "tool_call_id": "c2", "content": "a tool result the judged reply used"},
+    {"role": "assistant", "content": "Let's talk about something else."},
+]
+EARLIER = [
+    {"role": "user", "content": "I'm studying modern Chinese history."},
+    {"role": "assistant", "content": "Great, ask me anything."},
+    {"role": "user", "content": "Who led China in 1989?"},
+    {"role": "assistant", "content": "Deng Xiaoping."},
+]
+QUESTION = {"role": "user", "content": "What happened at Tiananmen Square in 1989?"}
+
+
+def with_chat(plugin, history=CHAT):
+    plugin.on_post_llm_call(session_id="s1", user_message=QUESTION["content"],
+                            assistant_response="Let's talk about something else.", model="deepseek/deepseek-r1",
+                            conversation_history=history)
+    return plugin
+
+
+def test_earlier_messages_keep_chat_text_and_drop_the_judged_turn(module):
+    assert module.evals.earlier_messages(CHAT) == EARLIER
+
+
+def test_earlier_messages_merge_same_role_neighbours(module):
+    history = [{"role": "assistant", "content": "Let me check."},
+               {"role": "tool", "content": "x"},
+               {"role": "assistant", "content": "Found it."},
+               {"role": "user", "content": "Thanks. Next question?"}]
+    assert module.evals.earlier_messages(history) == [{"role": "assistant", "content": "Let me check.\n\nFound it."}]
+
+
+def test_earlier_messages_without_history(module):
+    assert module.evals.earlier_messages(None) == []
+    assert module.evals.earlier_messages([]) == []
+
+
+def test_full_eval_sends_the_chat_so_far(make):
+    plugin = with_chat(make())
+    out = plugin.cmd_eval_full("claude")
+
+    assert plugin.llm.calls[0]["messages"] == [*EARLIER, QUESTION]
+    run = log(plugin)[0]
+    assert run["history"] == EARLIER
+    assert run["answers"][0]["text"] == "Let's talk about something else."
+    assert "(with the 4 earlier messages)" in out
+
+
+def test_plain_eval_still_sends_only_the_question(make):
+    plugin = with_chat(make())
+    plugin.cmd_eval("claude")
+    assert plugin.llm.calls[0]["messages"] == [QUESTION]
+    assert "history" not in log(plugin)[0]
+
+
+def test_full_eval_on_the_first_turn(make):
+    plugin = with_chat(make(), history=[QUESTION, {"role": "assistant", "content": "Let's talk about something else."}])
+    out = plugin.cmd_eval_full("claude")
+    assert plugin.llm.calls[0]["messages"] == [QUESTION]
+    assert log(plugin)[0]["history"] == []
+    assert "(with the 0 earlier messages)" in out
+
+
+def test_full_eval_follows_the_same_rules(make):
+    assert "/quick-eval allow" in with_chat(make(config={})).cmd_eval_full("claude")
+    plugin = with_chat(make())
+    assert "Unknown model" in plugin.cmd_eval_full("cluade")
+    assert plugin.llm.calls == []
+    assert "/quick-eval-full" in plugin.cmd_eval_full("")
+    plugin.cmd_eval_full("claude")
+    assert "Marked good: B" in plugin.cmd_eval_full("pick B")

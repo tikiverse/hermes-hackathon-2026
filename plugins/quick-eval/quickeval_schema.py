@@ -12,10 +12,14 @@ def new_id(prefix):
     return f"{prefix}_{uuid.uuid4().hex[:10]}"
 
 
-def run_record(prompt, answers, session_id=None, message_id=None, params=None):
-    """why: params = the settings every rerun answer got (B..); answer A kept the chat's own."""
-    return {"v": 1, "type": RUN, "id": new_id("r"), "ts": time.time(), "session_id": session_id,
-            "message_id": message_id, "prompt": prompt, "answers": answers, "params": params}
+def run_record(prompt, answers, session_id=None, message_id=None, params=None, history=None):
+    """why: params = the settings every rerun answer got (B..); answer A kept the chat's own. history is set only by
+    /quick-eval-full: the earlier messages B.. saw before the prompt."""
+    record = {"v": 1, "type": RUN, "id": new_id("r"), "ts": time.time(), "session_id": session_id,
+              "message_id": message_id, "prompt": prompt, "answers": answers, "params": params}
+    if history is not None:
+        record["history"] = history
+    return record
 
 
 def answer(label, model, text, **extra):

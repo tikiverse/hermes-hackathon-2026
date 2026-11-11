@@ -2,6 +2,7 @@
 
 /quick-eval                        help: your last question, the models you can name, the commands
 /quick-eval <model> [model ...]    ask them; answers print side by side
+/quick-eval-full <model> [...]     same, but they also see the chat so far (all but the reply you saw)
 /quick-eval pick A,B [note]        mark the good answers of the last run (or: none)
 /quick-eval open                   review page in the browser
 /quick-eval allow                  one-time permission to send your question to other models
@@ -31,6 +32,7 @@ MAX_LISTED = 8
 MANIFEST = Path(__file__).resolve().parent / "plugin.yaml"
 COMMANDS = [
     ("/quick-eval {example}", "ask them (names from the list above)"),
+    ("/quick-eval-full {example}", "same, with the chat so far"),
     ("/quick-eval pick A,B [note]", "mark the good answers (or: none)"),
     ("/quick-eval open", "review in the browser"),
 ]
@@ -103,17 +105,21 @@ class QuickEval:
         self.last_run = None
         self.subcommands = {"open": self.cmd_open, "pick": self.cmd_pick, "allow": self.cmd_allow}
 
-    def on_post_llm_call(self, user_message=None, assistant_response=None, model=None, session_id=None, **kwargs):
+    def on_post_llm_call(self, user_message=None, assistant_response=None, model=None, session_id=None,
+                         conversation_history=None, **kwargs):
         if user_message and assistant_response:
             self.last_turn = {"prompt": user_message, "response": assistant_response, "model": model,
-                              "session_id": session_id}
+                              "session_id": session_id, "history": list(conversation_history or [])}
 
-    def cmd_eval(self, raw_args: str = "") -> str:
+    def cmd_eval(self, raw_args: str = "", full: bool = False) -> str:
         words = (raw_args or "").split()
         if not words:
             return self.help()
         handler = self.subcommands.get(words[0].lower())
-        return handler(" ".join(words[1:])) if handler else self.run(words)
+        return handler(" ".join(words[1:])) if handler else self.run(words, full=full)
+
+    def cmd_eval_full(self, raw_args: str = "") -> str:
+        return self.cmd_eval(raw_args, full=True)
 
     def cmd_open(self, _raw: str = "") -> str:
         return open_ui()
@@ -154,7 +160,7 @@ class QuickEval:
                 rows.append((name, where))
         return rows
 
-    def run(self, names):
+    def run(self, names, full=False):
         if not self.last_turn:
             return NO_TURN
         config = self.config.load()
@@ -168,7 +174,7 @@ class QuickEval:
         note = evals.skipped_note(skipped)
         if not kept:
             return f"{note} Name a different model: /quick-eval lists them."
-        return "\n".join(filter(None, [note, self.ask(kept, settings.params(config))]))
+        return "\n".join(filter(None, [note, self.ask(kept, settings.params(config), full)]))
 
     def unknown_names(self, names, config):
         listed = {name for name, _ in self.model_rows(config)} | set(settings.aliases(config))
@@ -197,9 +203,11 @@ class QuickEval:
             if server["api"].rstrip("/") not in known:
                 self.config.save(settings.provider_patch(server["slug"], server["name"], server["api"]))
 
-    def ask(self, targets, params):
-        self.say(f"Asking {', '.join(t.describe() for t in targets)}...")
-        run = self.store.append(evals.run_eval(self.last_turn, targets, self.llm.complete, params))
+    def ask(self, targets, params, full=False):
+        history = evals.earlier_messages(self.last_turn.get("history")) if full else None
+        context = evals.context_note({"history": history})
+        self.say(f"Asking {', '.join(t.describe() for t in targets)}{context}...")
+        run = self.store.append(evals.run_eval(self.last_turn, targets, self.llm.complete, params, history))
         self.last_run = run
         return evals.format_eval(run) + "\n" + evals.pick_hint(run)
 
@@ -236,6 +244,7 @@ def register(ctx):
     old = too_old_message(hermes_version())
     if old:
         ctx.register_command("quick-eval", partial(refuse, old), description=old)
+        ctx.register_command("quick-eval-full", partial(refuse, old), description=old)
         return
     plugin = QuickEval(llm=LazyLLM(ctx))
     ctx.register_hook("post_llm_call", plugin.on_post_llm_call)
@@ -243,3 +252,6 @@ def register(ctx):
     ctx.register_command("quick-eval", plugin.cmd_eval,
                          description="Ask other models your last question; mark the good answers",
                          args_hint="[model ...] | pick A,B [note] | open | allow")
+    ctx.register_command("quick-eval-full", plugin.cmd_eval_full,
+                         description="Like /quick-eval, but other models also see the chat so far",
+                         args_hint="[model ...]")

@@ -199,3 +199,45 @@ def test_marking_a_card_keeps_the_phone_deck_on_that_card(page):
     assert before > 0
     assert page.eval_on_selector(".ep-now .ep-cgrid", "g => g.scrollLeft") == before
     assert page.locator(".ep-col.won").count() == 1
+
+
+CONTEXT = [{"role": "user", "content": "I'm reading about China in 1989, a long first line that wraps on a phone."},
+           {"role": "assistant", "content": "Ask away."}]
+
+
+def open_full_run(page, history=CONTEXT):
+    answers = [schema.answer("A", HF_PATH, "no comment"), schema.answer("B", "m-rival", "an answer", latency_ms=900)]
+    quickeval_log.EvalLog(page.evals_path).append(
+        schema.run_record("ask older", answers, session_id="older", history=history))
+    page.click(".ep-rail-list .ep-item:has-text('Older chat')")
+    page.wait_for_selector(".ep-now.multi")
+
+
+def test_full_run_shows_the_context_the_models_saw(page):
+    open_full_run(page)
+    summary = page.locator(".ep-now .ep-context > summary")
+    sync_api.expect(summary).to_have_text("Context the other models saw: 2 earlier messages")
+    assert not page.is_visible(".ep-context-list")
+    summary.click()
+    sync_api.expect(page.locator(".ep-context-list .ep-bubble")).to_have_text([m["content"] for m in CONTEXT])
+
+
+def test_full_run_on_a_first_message_says_there_was_no_context(page):
+    open_full_run(page, history=[])
+    sync_api.expect(page.locator(".ep-now .ep-fold").first).to_have_text(
+        "Context: none, this was the chat's first message")
+
+
+def test_plain_run_shows_no_context(page):
+    assert page.locator(".ep-now .ep-context").count() == 0
+    assert "Context" not in page.inner_text(".ep-now")
+
+
+def test_context_messages_are_not_clipped_on_phone(page):
+    open_full_run(page)
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.click(".ep-now .ep-context > summary")
+    clamp = page.eval_on_selector(".ep-context-list .ep-msg.user .ep-bubble", "b => getComputedStyle(b).webkitLineClamp")
+    assert clamp == "none"
+    prompt = page.eval_on_selector(".ep-now.multi > .ep-msg.user .ep-bubble", "b => getComputedStyle(b).webkitLineClamp")
+    assert prompt == "2"

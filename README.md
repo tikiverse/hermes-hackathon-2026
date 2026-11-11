@@ -51,7 +51,7 @@ Restart `hermes` after installing.
 
 | Where | How |
 |---|---|
-| Terminal (`hermes`) | `/quick-eval` lists models + commands → `/quick-eval deepseek` → `/quick-eval pick A,B` |
+| Terminal (`hermes`) | `/quick-eval` lists models + commands → `/quick-eval deepseek` → `/quick-eval pick A,B`. `/quick-eval-full deepseek` also gives the models the chat so far |
 | Chat apps (Desktop, phone, gateways) | same commands |
 | Review UI | `/quick-eval open` → http://127.0.0.1:8765. Also a tab in `hermes dashboard`. No Hermes: `uv run python plugins/quick-eval/standalone.py --open` |
 

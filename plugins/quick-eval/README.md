@@ -16,6 +16,7 @@ Models you can name:
 
 Commands:
   /quick-eval deepseek           ask them (names from the list above)
+  /quick-eval-full deepseek      same, with the chat so far
   /quick-eval pick A,B [note]    mark the good answers (or: none)
   /quick-eval open               review in the browser
 
@@ -33,6 +34,7 @@ Next: /quick-eval pick A,B [note] marks the good answers (or: none) · /quick-ev
 ```
 
 - **Answer A** is the agent's reply exactly as you saw it. The other models get only your last question, with no system prompt or history, and run in parallel, each with the same settings and a 120 s timeout.
+- **`/quick-eval-full`** works the same, except the other models first see the chat so far: every earlier user and assistant message, then your last question. Tool calls and tool results are left out, since the other models have no tools, and so is everything after your last question, including the reply being judged. Use it when the question only makes sense in context ("and what happened after that?"). `pick` and `open` work the same from either command.
 - **Names:** any name `/quick-eval` lists, an `org/model` id, or `model@provider`. Any other word is treated as a typo and calls nothing.
 - **Hermes version:** needs the `requires_hermes` in `plugin.yaml` (tested on 0.19 and 0.23). Older Hermes gets a message saying to update, not a half-working command.
 - **Text only, no pickers:** works the same in the terminal, on any Hermes version, and in chat apps.
@@ -43,7 +45,7 @@ Next: /quick-eval pick A,B [note] marks the good answers (or: none) · /quick-ev
 
 ## What it touches (disclosure)
 
-- **Model calls:** `/quick-eval` sends your last prompt (only the prompt) to the models you pick, through Hermes's own `ctx.llm` and your configured providers. Nothing else leaves the machine.
+- **Model calls:** `/quick-eval` sends your last prompt (only the prompt) to the models you pick, through Hermes's own `ctx.llm` and your configured providers. `/quick-eval-full` also sends the earlier user and assistant messages of the chat (no tool calls or tool results). Nothing else leaves the machine.
 - **Local probes:** `/quick-eval` checks `127.0.0.1` ports 11434, 1234, 8000 and 8080 for local model servers.
 - **Writes:** `~/.hermes/evals/evals.jsonl` (append-only), and this plugin's section of `config.yaml` (the permission from `/quick-eval allow`, plus a local server you name).
 - **Reads:** `~/.hermes/state.db`, read-only, for the Review tab.

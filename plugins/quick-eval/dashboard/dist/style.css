@@ -113,6 +113,7 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
 .ep-pre { margin: 0; padding: 10px; border-top: 1px solid var(--ep-line); font: 12px/1.5 var(--ep-mono); white-space: pre-wrap; max-height: 320px; overflow-y: auto; }
 .ep-fold { font-size: 13px; color: var(--ep-muted); }
 .ep-fold > summary { cursor: pointer; }
+.ep-context-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 
 /* why: answers to the turn under review: equal columns; tap one to mark it good */
 .ep-cgrid { display: grid; grid-template-columns: repeat(var(--ep-cols, 2), minmax(0, 1fr)); gap: 12px; align-items: stretch; }
@@ -173,7 +174,7 @@ textarea.ep-input { resize: vertical; margin-top: 8px; }
   .ep-now.multi { width: auto; }
   .ep-now.multi .ep-cgrid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
   .ep-now.multi .ep-col { flex: 0 0 88%; scroll-snap-align: center; }
-  .ep-now.multi .ep-msg.user .ep-bubble:not(.open) { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  .ep-now.multi > .ep-msg.user .ep-bubble:not(.open) { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
   .ep-msg { max-width: 94%; }
   .ep-cgrid { grid-template-columns: minmax(0, 1fr); }
   .ep-bar { padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }

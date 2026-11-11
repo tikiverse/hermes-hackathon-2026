@@ -62,17 +62,44 @@ def skipped_note(skipped):
     return f"Skipped {names}: it wrote the reply you saw." if skipped else ""
 
 
-def call_model(complete, prompt, target, params):
-    result = complete([{"role": "user", "content": prompt}], provider=target.provider, model=target.model,
-                      purpose="quick-eval", **params)
+def text_of(content):
+    """why: a message's content is a string, or a list of parts of which only the text parts carry words."""
+    if isinstance(content, str):
+        return content.strip()
+    if isinstance(content, list):
+        parts = [p.get("text") or "" for p in content if isinstance(p, dict) and p.get("type") == "text"]
+        return "\n".join(parts).strip()
+    return ""
+
+
+def earlier_messages(history):
+    """why: /quick-eval-full shows other models the chat so far. Only user and assistant text goes: tool calls and
+    results are Hermes's own, and the other models have no tools. Everything from the last user message on is cut,
+    so the reply being judged, and the steps that made it, stay out. Same-role neighbours merge into one message."""
+    kept = []
+    for message in history or []:
+        role = message.get("role") if isinstance(message, dict) else None
+        text = text_of(message.get("content")) if role in ("user", "assistant") else ""
+        if not text:
+            continue
+        if kept and kept[-1]["role"] == role:
+            kept[-1]["content"] += "\n\n" + text
+        else:
+            kept.append({"role": role, "content": text})
+    last_user = max((i for i, m in enumerate(kept) if m["role"] == "user"), default=None)
+    return kept[:last_user] if last_user is not None else kept
+
+
+def call_model(complete, messages, target, params):
+    result = complete(messages, provider=target.provider, model=target.model, purpose="quick-eval", **params)
     text = (result.text or "").strip()
     return {"text": text, "model": getattr(result, "model", None) or target.model, "error": None if text else EMPTY}
 
 
-def ask(complete, prompt, target, label, params):
+def ask(complete, messages, target, label, params):
     start = time.perf_counter()
     try:
-        got = call_model(complete, prompt, target, params)
+        got = call_model(complete, messages, target, params)
     except Exception as exc:  # why: one broken model must not sink the whole eval
         got = {"text": "", "model": target.model, "error": f"{type(exc).__name__}: {exc}"}
     latency = round((time.perf_counter() - start) * 1000)
@@ -80,14 +107,17 @@ def ask(complete, prompt, target, label, params):
                          error=got["error"])
 
 
-def run_eval(turn: dict, targets: list[Target], complete, params: dict) -> dict:
-    """why: answer A is the reply the user saw; B.. are the targets, asked in parallel with the prompt + same params."""
+def run_eval(turn: dict, targets: list[Target], complete, params: dict, history: list | None = None) -> dict:
+    """why: answer A is the reply the user saw; B.. are the targets, asked in parallel with the prompt + same params.
+    history (from /quick-eval-full) = the earlier messages every target sees before the prompt."""
     original = schema.answer("A", turn.get("model"), turn["response"])
+    messages = [*(history or []), {"role": "user", "content": turn["prompt"]}]
     labels = zip(targets, LABELS[1:], strict=False)
-    jobs = [partial(ask, complete, turn["prompt"], t, label, params) for t, label in labels]
+    jobs = [partial(ask, complete, messages, t, label, params) for t, label in labels]
     with ThreadPoolExecutor(max_workers=max(1, len(jobs))) as pool:
         reruns = list(pool.map(call_job, jobs))
-    return schema.run_record(turn["prompt"], [original, *reruns], session_id=turn.get("session_id"), params=params)
+    return schema.run_record(turn["prompt"], [original, *reruns], session_id=turn.get("session_id"), params=params,
+                             history=history)
 
 
 def call_job(job):
@@ -100,8 +130,16 @@ def answer_lines(a):
     return [f"── {a['label']} · {short_model(a.get('model')) or 'unknown'} · {tag} ──", body, ""]
 
 
+def context_note(run: dict) -> str:
+    history = run.get("history")
+    if history is None:
+        return ""
+    count = len(history)
+    return f" (with the {count} earlier message{'s' if count != 1 else ''})"
+
+
 def format_eval(run: dict) -> str:
-    lines = [f"Eval {run['id']}: {run['prompt']}", ""]
+    lines = [f"Eval {run['id']}{context_note(run)}: {run['prompt']}", ""]
     lines += [line for a in run["answers"] for line in answer_lines(a)]
     return "\n".join(lines)
 

@@ -59,9 +59,9 @@ def fake_server():
     server.shutdown()
 
 
-def run(home: Path, eval_args: str, score_args: str) -> dict:
+def run(home: Path, eval_args: str, score_args: str, command: str = "quick-eval", history=()) -> dict:
     proc = subprocess.run(
-        [sys.executable, str(SCRIPT), eval_args, score_args],
+        [sys.executable, str(SCRIPT), eval_args, score_args, command, json.dumps(list(history))],
         capture_output=True,
         text=True,
         timeout=120,
@@ -124,3 +124,31 @@ def test_untrusted_plugin_calls_no_model_until_allowed(tmp_path, fake_server):
 
     assert "/quick-eval allow" in out["eval"]
     assert requests == []
+
+
+HISTORY = [
+    {"role": "user", "content": "I'm reading about China in the 1980s."},
+    {"role": "assistant", "content": "", "tool_calls": [{"id": "c1", "type": "function",
+                                                         "function": {"name": "web_search", "arguments": "{}"}}]},
+    {"role": "tool", "tool_call_id": "c1", "content": "search results"},
+    {"role": "assistant", "content": "Happy to help. What would you like to know?"},
+    {"role": "user", "content": "What happened at Tiananmen Square in 1989?"},
+    {"role": "assistant", "content": "I can't discuss that."},
+]
+
+
+def test_full_eval_sends_the_chat_so_far_through_real_hermes(tmp_path, fake_server):
+    api, requests = fake_server
+    setup_home(tmp_path, api, trusted=True)
+
+    out = run(tmp_path, "fake", "B", command="quick-eval-full", history=HISTORY)
+
+    assert "with the 2 earlier messages" in out["eval"], out["eval"]
+    sent = [m for m in requests[0]["body"]["messages"] if m["role"] != "system"]
+    assert sent == [
+        {"role": "user", "content": "I'm reading about China in the 1980s."},
+        {"role": "assistant", "content": "Happy to help. What would you like to know?"},
+        {"role": "user", "content": "What happened at Tiananmen Square in 1989?"},
+    ]
+    first = json.loads((tmp_path / "evals" / "evals.jsonl").read_text().splitlines()[0])
+    assert first["history"] == sent[:2]
