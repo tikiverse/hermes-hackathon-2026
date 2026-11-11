@@ -51,10 +51,11 @@ The demo runs entirely on your machine with two small Ollama models, so you don'
 
    On Linux or Windows, install Ollama from [ollama.com/download](https://ollama.com/download). The two models are about 1.5 GB in total.
 
-1. Run the demo script. It clones this repository to `~/.cache/quick-eval-pr`, creates the demo Hermes home with the plugin enabled, prints the steps below, and opens Hermes when you press Enter.
+1. Clone this repository and run the demo script. The script creates the demo Hermes home with the plugin enabled, prints the steps below, and opens Hermes when you press Enter.
 
    ```sh
-   curl -fsSL https://raw.githubusercontent.com/tikiverse/quick-eval/main/scripts/demo.sh | sh
+   git clone https://github.com/tikiverse/quick-eval.git ~/.cache/quick-eval-pr
+   sh ~/.cache/quick-eval-pr/scripts/demo.sh
    ```
 
 1. In Hermes, ask a question. The chat model is Qwen2.5 0.5B.
