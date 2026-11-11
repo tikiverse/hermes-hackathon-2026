@@ -10,8 +10,8 @@ Reply per item, for example `1 yes, 3 no`:
 
 1. Demo steps move to [`docs/demo.md`](../demo.md). Plugin README keeps a 1-line link. Why: `hermes plugins validate` scans the plugin folder's README; `curl_pipe_shell` + `destructive_home_rm` came from the demo section. Result: both gone, one-line `curl | sh` demo stays. Alt: PR 9 (clone, then run; `rm` line stays, still a warning).
 2. `/quick-eval open`: Desktop chat → Desktop **Quick Eval** page. Terminal or any other surface → browser page, even with Desktop installed. Hermes tells the command its surface (`platform`).
-3. Desktop page (PR 4) is folded in here. Close PR 4 and PR 9 after merge (both superseded).
-4. 2 `private core imports` warnings stay: no public API for Hermes version or signed-in providers. Both guarded by try; reviewer sees them. Hermes issue to ask for the 2 seams: not posted (needs your OK).
+3. Desktop page (PR 4) is folded in here. PR 9 closed 2026-11-11 as superseded (branch `validator-warnings` kept; reopen it if you pick clone-then-run in decision 1). Close PR 4 after merge.
+4. 2 `private core imports` warnings stay: no public API for Hermes version or signed-in providers. Both guarded by try; reviewer sees them. Hermes issue asking for the 2 seams, posted 2026-11-11: https://github.com/NousResearch/hermes-agent/issues/153833
 5. Demo GIF: 6 steps recorded in the real Hermes Desktop app (new chat, `/quick-eval`, `/quick-eval sonnet qwen2.5:0.5b`, `/quick-eval open`, mark A+B, save). Cropped to the chat and the Quick Eval page: no session list, no other chats, no file path (the `local` model row is rewritten). Replaces the screen-recording GIF (webcam, captions). Rebuild: `docs/demo.md`, last section.
 6. Registry PR: fork `shaunporwal/hermes-agent`, branch `plugin-catalog/quick-eval`. `tikiverse` (repo owner, catalog rule 5) opens the PR from the compare link below. `sha` = merge commit of this PR.
 7. Desktop open needs a Hermes that reports the chat's surface to the command (upstream 0.22.3 or newer). Found 2026-11-11 on Shaun's Mac: the first try showed the browser URL because (a) the gateway had started before this change and still ran the old code, and (b) that chat was created in a terminal and resumed in Desktop, so it keeps the surface `tui`. A chat created in Desktop reports `desktop`. Second try, 2026-11-11 14:10 (new Desktop chat): the command reached Desktop (its reply said so) but no page showed. Cause: Desktop ships a plugin's Desktop page off until the user turns it on once (`runtime-loader.ts`: "A unified package's desktop half ships opt-in"); plugins installed through Desktop's own installer are turned on for the user. The plugin cannot preset it. Fix: README names the switch (Capabilities > Plugins > Quick Eval) and the reply of `/quick-eval open` says it. Rec: keep `requires_hermes: ">=0.19"` (the browser page still works on 0.19 to 0.22.2; a hard pin would drop those users from the whole plugin) and say so in the README and the catalog text. Alt: pin `>=0.22.3`. Not a setting.
@@ -24,7 +24,8 @@ Links:
 - Demo GIF: https://raw.githubusercontent.com/tikiverse/quick-eval/main/docs/img/demo.gif
 - Demo video task: https://github.com/tikiverse/quick-eval/issues/3
 - PR 4, Desktop page (folded in): https://github.com/tikiverse/quick-eval/pull/4
-- PR 9, validator warnings (superseded): https://github.com/tikiverse/quick-eval/pull/9
+- PR 9, validator warnings (closed, superseded): https://github.com/tikiverse/quick-eval/pull/9
+- Hermes seams issue (posted): https://github.com/NousResearch/hermes-agent/issues/153833
 - Hackathon post: https://x.com/NousResearch/status/2118094256438936062
 - Catalog rules: https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/plugins/catalog-submission.md
 - Catalog entry schema: https://github.com/NousResearch/hermes-agent/blob/main/plugin-catalog/README.md
@@ -100,4 +101,4 @@ Links:
 ## Non-Goals
 
 - Hermes code changes. Seams we need go in a Hermes issue.
-- Closing PR 4 and PR 9 before this merges.
+- Closing PR 4 before this merges.

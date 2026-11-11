@@ -1,27 +1,36 @@
-# Draft: NousResearch/hermes-agent issue (NOT posted)
+# Hermes issue: posted
 
-Status: draft. Posting is Shaun's call (message in his name). Upstream search 2026-11-11: no issue asks for either seam. Related, different asks: https://github.com/NousResearch/hermes-agent/issues/153245, https://github.com/NousResearch/hermes-agent/issues/148137.
+Posted 2026-11-11 from the `shaunporwal` account: https://github.com/NousResearch/hermes-agent/issues/153833
 
-Title: Plugins have no public way to read the Hermes version or list signed-in providers
+Title: [Feature]: Plugins have no public way to read the Hermes version or list signed-in providers
 
-## Problem
+Text as posted:
 
-A catalog plugin that needs these two facts must import private core modules. `hermes plugins validate` then warns `private core imports` for each. Today the quick-eval plugin catches a failed provider import, and the validator still warns for both.
+### Problem or Use Case
+
+A catalog plugin that needs the Hermes version, or the providers Hermes is signed in to, must import private core modules. `hermes plugins validate` then warns `private core imports` for each one.
 
 | Fact | Private import used today | Why a plugin needs it |
 |---|---|---|
-| Hermes version | `hermes_cli.__version__` | Hermes 0.19 ignores `requires_hermes`; the plugin reads the version itself and refuses to load on a too-old Hermes |
-| Signed-in providers | `hermes_cli.model_switch.list_authenticated_providers` | `/quick-eval` lists the (provider, model) pairs Hermes already has credentials for; with no access the list is empty |
+| Hermes version | `hermes_cli.__version__` | Hermes 0.19 ignores `requires_hermes`, so the plugin reads the version itself and refuses to load on a Hermes that is too old |
+| Signed-in providers | `hermes_cli.model_switch.list_authenticated_providers` | The plugin lists the (provider, model) pairs Hermes already has credentials for. With no access, the list is empty |
 
-## Ask
+The plugin is [quick-eval](https://github.com/tikiverse/quick-eval). It catches a failed provider import, and the validator still warns for both imports. At the pinned commit these are the only 2 warnings.
 
-1. `ctx.hermes_version` (string), or `hermes_cli.plugin_api.hermes_version()`.
-2. `ctx.list_signed_in_providers()` (read only; names and model ids, no keys).
+### Proposed Solution
 
-Either shape works. Both are read only.
+1. `ctx.hermes_version` (a string), or `hermes_cli.plugin_api.hermes_version()`.
+2. `ctx.list_signed_in_providers()`: read only, returns provider names and model ids, no keys.
 
-## Evidence
+Either shape works for both.
 
-- Validator output at the pinned commit: 2 warnings, both `private core imports`, no other warnings.
-- Plugin: https://github.com/tikiverse/quick-eval (`plugins/quick-eval/__init__.py`, `plugins/quick-eval/discover.py`).
-- Catalog entry: `docs/catalog/quick-eval.yaml` in that repo.
+### Related
+
+- #153245 asks for `hermes models --json`, which prints the same data as `list_authenticated_providers`. This issue asks for the call inside the plugin process.
+- #129003 and #150066: the version a loader resolves for `requires_hermes` can differ from `hermes_cli.__version__` (stale git tag, Nix stamp `0.0.0`). A public call would give plugins the loader's own answer.
+- #141982 tracks other plugin API gaps. These 2 are not in it.
+
+### Evidence
+
+- Plugin code: `plugins/quick-eval/__init__.py` and `plugins/quick-eval/discover.py` in https://github.com/tikiverse/quick-eval.
+- Catalog entry (draft): `docs/catalog/quick-eval.yaml` in the same repo.
