@@ -14,7 +14,7 @@ Reply per item, for example `1 yes, 3 no`:
 4. 2 `private core imports` warnings stay: no public API for Hermes version or signed-in providers. Both guarded by try; reviewer sees them. Hermes issue asking for the 2 seams, posted 2026-11-11: https://github.com/NousResearch/hermes-agent/issues/153833
 5. Demo GIFs: a 6-step demo recorded in the real Hermes Desktop app, and a 3-step GIF that shows where to turn the plugin on in Desktop. Cropped so no session list, other chats or file path show. Replaces the screen-recording GIF (webcam, captions). Rebuild: `docs/demo.md`, last section.
 6. Registry PR: fork `shaunporwal/hermes-agent`, branch `plugin-catalog/quick-eval`. `tikiverse` (repo owner, catalog rule 5) opens the PR from the compare link below. `sha` = merge commit of this PR.
-7. Minimum Hermes version. The Desktop page needs Hermes 0.22.3 or newer. Older Hermes (0.19 to 0.22.2) still works: `/quick-eval open` opens the browser page there. Rec: keep `requires_hermes: ">=0.19"`, so older users keep the plugin. Alt: `>=0.22.3` (drops those users from the whole plugin).
+7. Keep the plugin installable on Hermes 0.19 and newer (`requires_hermes: ">=0.19"`). The Desktop page needs 0.22.3 or newer; on 0.19 to 0.22.2 `/quick-eval open` opens the browser page instead, and everything else works. `7 no` = require 0.22.3 or newer: older users cannot install the plugin at all.
 
 This PR finishes the Hermes Agent Plugin Hackathon entry: it clears the validator warnings it can, makes `/quick-eval open` use Desktop when it runs in Desktop, adds the demo GIF, and prepares the catalog PR.
 
