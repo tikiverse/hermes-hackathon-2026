@@ -1,10 +1,11 @@
 /* why: Hermes Desktop half: a Quick Eval page + sidebar row. It shows the same UI as the dashboard tab inside the
    SDK's sandboxed frame; the frame has no network, so its API calls arrive here and go out through ctx.rest. */
-import { ROUTES_AREA, SIDEBAR_NAV_AREA, SandboxedFrame } from "@hermes/plugin-sdk"
+import { ROUTES_AREA, SIDEBAR_NAV_AREA, SandboxedFrame, host } from "@hermes/plugin-sdk"
 import { useEffect, useRef, useState } from "react"
 import { jsx } from "react/jsx-runtime"
 
 const PATH = "/quick-eval"
+const OPEN_EVENT = "plugin.quick-eval.open"
 const FRAME_STYLE = { width: "100%", height: "100%", border: 0, display: "block" }
 const NOTE_STYLE = { padding: 16 }
 const PLUGIN = { ctx: null }
@@ -58,8 +59,12 @@ function QuickEvalPage() {
 
 function renderPage() { return jsx(QuickEvalPage, {}) }
 
+function showPage() { host.navigate(PATH) }
+
 function register(ctx) {
   PLUGIN.ctx = ctx
+  // why: /quick-eval open in a Desktop chat emits this event (quickeval open_in_desktop) instead of opening a browser
+  ctx.onEvent(OPEN_EVENT, showPage)
   ctx.registerMany([
     { id: "page", area: ROUTES_AREA, data: { path: PATH }, render: renderPage },
     { id: "nav", area: SIDEBAR_NAV_AREA, data: { path: PATH, label: "Quick Eval", codicon: "checklist" } },

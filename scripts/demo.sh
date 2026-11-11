@@ -1,5 +1,5 @@
 #!/bin/sh
-# quick-eval demo: needs Hermes + Ollama + 2 small models (README "Try it"). Installs nothing itself.
+# quick-eval demo: needs Hermes + Ollama + 2 small models (docs/demo.md). Installs nothing itself.
 # Sets up a Hermes home of its own (yours untouched) with this branch's plugin, then opens Hermes. Rerun anytime.
 # Usage: curl -fsSL <raw url of this file> | sh   (env: QE_BRANCH, QE_DIR, QE_REPO, QE_DEMO_HOME, QE_NO_LAUNCH)
 set -eu

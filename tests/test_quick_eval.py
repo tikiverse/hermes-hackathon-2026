@@ -1,5 +1,6 @@
 import copy
 import json
+import sys
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
@@ -332,3 +333,63 @@ def test_hermes_older_than_the_manifest_floor_is_refused_with_a_fix(module, vers
     assert (message is not None) == refused
     if refused:
         assert "hermes update" in message and module.min_hermes() in message
+
+
+class Events:
+    """why: stands in for hermes_cli.plugin_events, which Hermes 0.19 (the test env) lacks."""
+
+    def __init__(self):
+        self.sent = []
+
+    def broadcast_plugin_event(self, plugin_id, event, payload=None):
+        self.sent.append((plugin_id, event, payload))
+
+
+class Browser:
+    """why: stands in for open_ui, so no test starts a server or a browser."""
+
+    def __init__(self):
+        self.seen = []
+
+    def open_ui(self):
+        self.seen.append("browser")
+        return "quick-eval UI: browser"
+
+
+@pytest.fixture
+def opened(module, monkeypatch):
+    """why: record which opener ran; no test starts a server or a browser."""
+    browser = Browser()
+    monkeypatch.setattr(module, "open_ui", browser.open_ui)
+    return browser.seen
+
+
+@pytest.fixture
+def events(monkeypatch):
+    fake = Events()
+    monkeypatch.setitem(sys.modules, "hermes_cli.plugin_events", fake)
+    return fake
+
+
+def test_open_in_a_desktop_chat_asks_the_desktop_page_to_show_itself(make, opened, events):
+    out = make().cmd_eval("open", platform="desktop")
+    assert events.sent == [("quick-eval", "open", None)]
+    assert opened == [] and "Hermes Desktop" in out
+
+
+@pytest.mark.parametrize("platform", [None, "tui", "cli", "telegram"])
+def test_open_anywhere_else_opens_the_browser_page_even_with_desktop_installed(make, opened, events, platform):
+    make().cmd_eval("open", platform=platform)
+    assert opened == ["browser"] and events.sent == []
+
+
+def test_open_in_desktop_on_a_hermes_without_plugin_events_opens_the_browser(make, opened, monkeypatch):
+    monkeypatch.setitem(sys.modules, "hermes_cli.plugin_events", None)
+    assert "browser" in make().cmd_eval("open", platform="desktop")
+    assert opened == ["browser"]
+
+
+def test_every_subcommand_accepts_the_surface_hermes_passes(make):
+    plugin = make()
+    for words in ("allow", "pick none", ""):
+        assert plugin.cmd_eval(words, platform="desktop").strip()

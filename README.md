@@ -28,7 +28,7 @@ Restart `hermes`, ask the agent a question, and then run `/quick-eval`.
 
 The [plugin README](plugins/quick-eval/README.md) covers:
 
-- [A local demo](plugins/quick-eval/README.md#demo) that needs no account or API key
+- [A local demo](docs/demo.md) that needs no account or API key
 - [Commands and configuration](plugins/quick-eval/README.md#usage)
 - [The review page](plugins/quick-eval/README.md#review-page) and [eval log format](docs/eval-log.md)
 - [Data and network access](plugins/quick-eval/README.md#data-and-network-access)

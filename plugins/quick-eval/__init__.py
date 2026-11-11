@@ -3,7 +3,7 @@
 /quick-eval                        help: your last question, the models you can name, the commands
 /quick-eval <model> [model ...]    ask them; answers print side by side
 /quick-eval pick A,B [note]        mark the good answers of the last run (or: none)
-/quick-eval open                   review page in the browser
+/quick-eval open                   review page: Hermes Desktop's Quick Eval page when run there, else the browser
 /quick-eval allow                  one-time permission to send your question to other models
 
 why text only: Hermes 0.19 runs plugin commands in the terminal, newer ones in the gateway; a typed command works
@@ -32,7 +32,7 @@ MANIFEST = Path(__file__).resolve().parent / "plugin.yaml"
 COMMANDS = [
     ("/quick-eval {example}", "ask them (names from the list above)"),
     ("/quick-eval pick A,B [note]", "mark the good answers (or: none)"),
-    ("/quick-eval open", "review in the browser"),
+    ("/quick-eval open", "open the review page"),
 ]
 
 
@@ -42,6 +42,20 @@ def open_ui():
         threading.Thread(target=server.serve_forever, daemon=True).start()
     webbrowser.open(UI_URL)
     return f"quick-eval UI: {UI_URL}"
+
+
+def open_in_desktop():
+    """why: a Desktop chat has its own Quick Eval page; ask that page to show itself (desktop/plugin.js listens)
+    instead of opening a browser. Hermes without the plugin event stream falls back to the browser page."""
+    try:
+        from hermes_cli.plugin_events import broadcast_plugin_event
+    except ImportError:
+        return open_ui()
+    broadcast_plugin_event("quick-eval", "open")
+    return "quick-eval: opened the Quick Eval page in Hermes Desktop (sidebar: Quick Eval)"
+
+
+OPENERS = {"desktop": open_in_desktop}  # why: surface Hermes passes (`platform`) -> opener; others get the browser
 
 
 def file_link(path: Path) -> str:
@@ -108,21 +122,22 @@ class QuickEval:
             self.last_turn = {"prompt": user_message, "response": assistant_response, "model": model,
                               "session_id": session_id}
 
-    def cmd_eval(self, raw_args: str = "") -> str:
+    def cmd_eval(self, raw_args: str = "", platform: str | None = None) -> str:
+        """why: Hermes passes the surface a command ran on (`platform`) to handlers that name it; 0.19 passes none."""
         words = (raw_args or "").split()
         if not words:
             return self.help()
         handler = self.subcommands.get(words[0].lower())
-        return handler(" ".join(words[1:])) if handler else self.run(words)
+        return handler(" ".join(words[1:]), platform=platform) if handler else self.run(words)
 
-    def cmd_open(self, _raw: str = "") -> str:
-        return open_ui()
+    def cmd_open(self, _raw: str = "", platform: str | None = None) -> str:
+        return OPENERS.get(platform, open_ui)()
 
-    def cmd_allow(self, _raw: str = "") -> str:
+    def cmd_allow(self, _raw: str = "", **_surface) -> str:
         self.config.save(settings.trust_patch())
         return f"Allowed. Saved in {file_link(self.config.path())}. Now: /quick-eval <model>"
 
-    def cmd_pick(self, raw: str = "") -> str:
+    def cmd_pick(self, raw: str = "", **_surface) -> str:
         run = self.last_run or self.store.latest_run()
         if not run:
             return "No eval to pick from yet. Run /quick-eval first."

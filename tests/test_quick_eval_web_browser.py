@@ -223,9 +223,8 @@ def test_desktop_frame_works_through_the_parent_bridge(page):
     """why: Hermes Desktop runs the UI in a sandboxed data: frame; every call must go through postMessage."""
     page.evaluate(DESKTOP_PARENT)
     frame = page.frame_locator("iframe")
-    frame.locator(".ep-head .ep-segb:has-text('Compare')").click()
     frame.locator(".ep-cgrid .ep-col").nth(1).click()
     frame.locator(".ep-bar .ep-btn.pri").click()
-    frame.locator(".ep-rail-list .ep-label:has-text('B')").wait_for()
+    frame.locator(".ep-toast:has-text('good: B')").wait_for()
     assert judgments(page.evals_path)[-1]["good"] == ["B"]
     assert frame.locator("a:has-text('Export JSONL')").count() == 0
