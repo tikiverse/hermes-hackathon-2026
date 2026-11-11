@@ -4,7 +4,9 @@ Status: underway
 
 Branch: `hackathon-wrap-up`
 
-## Decisions (agree / disagree each)
+## Goal
+
+Reply per item, for example `1 yes, 3 no`:
 
 1. Demo steps move to [`docs/demo.md`](../demo.md). Plugin README keeps a 1-line link. Why: `hermes plugins validate` scans the plugin folder's README; `curl_pipe_shell` + `destructive_home_rm` came from the demo section. Result: both gone, one-line `curl | sh` demo stays. Alt: PR 9 (clone, then run; `rm` line stays, still a warning).
 2. `/quick-eval open`: Desktop chat → Desktop **Quick Eval** page. Terminal or any other surface → browser page, even with Desktop installed. Hermes tells the command its surface (`platform`).
@@ -13,24 +15,21 @@ Branch: `hackathon-wrap-up`
 5. Demo GIF: 5 stills from the recording, app window only. Webcam overlay + burned-in captions removed (no faces in a public README). Rebuild: `scripts/make-demo-gif.py`.
 6. Registry PR: fork `shaunporwal/hermes-agent`, branch `plugin-catalog/quick-eval`. `tikiverse` (repo owner, catalog rule 5) opens the PR from the compare link below. `sha` = merge commit of this PR.
 
-## Goal
+This PR finishes the Hermes Agent Plugin Hackathon entry: it clears the validator warnings it can, makes `/quick-eval open` use Desktop when it runs in Desktop, adds the demo GIF, and prepares the catalog PR.
 
-Finish the Hermes Agent Plugin Hackathon entry: clear what the validator can clear, make `/quick-eval open` use Desktop when it runs in Desktop, add the demo GIF, and prepare the catalog PR.
+Links:
 
-## Links
-
-| What | Link |
-|---|---|
-| Repo (renamed from `hermes-hackathon-2026`) | https://github.com/tikiverse/quick-eval |
-| Demo GIF | https://raw.githubusercontent.com/tikiverse/quick-eval/main/docs/img/demo.gif |
-| Demo video task | https://github.com/tikiverse/quick-eval/issues/3 |
-| PR 4, Desktop page (folded in) | https://github.com/tikiverse/quick-eval/pull/4 |
-| PR 9, validator warnings (superseded) | https://github.com/tikiverse/quick-eval/pull/9 |
-| Hackathon post | https://x.com/NousResearch/status/2118094256438936062 |
-| Catalog rules | https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/plugins/catalog-submission.md |
-| Catalog entry schema | https://github.com/NousResearch/hermes-agent/blob/main/plugin-catalog/README.md |
-| Example entry PR | https://github.com/NousResearch/hermes-agent/pull/152582 |
-| Catalog PR plan | [planned-catalog-entry.md](./planned-catalog-entry.md) |
+- Repo (renamed from `hermes-hackathon-2026`): https://github.com/tikiverse/quick-eval
+- Demo GIF: https://raw.githubusercontent.com/tikiverse/quick-eval/main/docs/img/demo.gif
+- Demo video task: https://github.com/tikiverse/quick-eval/issues/3
+- PR 4, Desktop page (folded in): https://github.com/tikiverse/quick-eval/pull/4
+- PR 9, validator warnings (superseded): https://github.com/tikiverse/quick-eval/pull/9
+- Hackathon post: https://x.com/NousResearch/status/2118094256438936062
+- Catalog rules: https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/plugins/catalog-submission.md
+- Catalog entry schema: https://github.com/NousResearch/hermes-agent/blob/main/plugin-catalog/README.md
+- Example entry PR: https://github.com/NousResearch/hermes-agent/pull/152582
+- Catalog PR plan: docs/pr-docs/planned-catalog-entry.md
+- Catalog PR body (draft): docs/catalog/pr-body.md
 
 ## Facts (checked in Hermes 0.23 source)
 
