@@ -1,5 +1,8 @@
 """why: the Hermes catalog entry pins one commit; render it from the draft the same way every time, never by hand.
 
+The draft (docs/catalog/quick-eval.yaml) is the entry for NousResearch/hermes-agent plugin-catalog/quick-eval.yaml
+with <sha> where the pinned commit goes (twice). Keep comments out of it: the draft is posted as is.
+
 Usage: uv run python -I scripts/catalog_entry.py <40-hex sha> [<out.yaml>]   (default out: stdout)
 """
 import re

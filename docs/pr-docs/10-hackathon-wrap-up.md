@@ -28,6 +28,8 @@ Links:
 - Catalog rules: https://github.com/NousResearch/hermes-agent/blob/main/website/docs/developer-guide/plugins/catalog-submission.md
 - Catalog entry schema: https://github.com/NousResearch/hermes-agent/blob/main/plugin-catalog/README.md
 - Example entry PR: https://github.com/NousResearch/hermes-agent/pull/152582
+- Catalog branch (fork): https://github.com/shaunporwal/hermes-agent/tree/plugin-catalog/quick-eval
+- Open the catalog PR from here (`tikiverse`): https://github.com/NousResearch/hermes-agent/compare/main...shaunporwal:hermes-agent:plugin-catalog/quick-eval
 - Catalog PR plan: docs/pr-docs/planned-catalog-entry.md
 - Catalog PR body (draft): docs/catalog/pr-body.md
 
@@ -64,8 +66,9 @@ Links:
 
 ### Tier 4 - Catalog PR (after merge)
 
-- [ ] Merge this PR; set `sha` in `docs/catalog/quick-eval.yaml` to the merge commit
-- [ ] Fork `NousResearch/hermes-agent`; add `plugin-catalog/quick-eval.yaml`; run Hermes's `scripts/validate_plugin_catalog.py` and `hermes plugins validate` at that sha
+- [x] Fork `shaunporwal/hermes-agent`; branch `plugin-catalog/quick-eval` holds `plugin-catalog/quick-eval.yaml` (`scripts/catalog-push.sh <sha>`), provisional pin = this PR's branch
+- [x] Hermes's `validate_plugin_catalog.py` passes on the entry; `hermes plugins validate --install-deps` passes in a clean clone at the pin (only the 2 `private core imports` warnings)
+- [ ] Merge this PR, then `scripts/catalog-push.sh <merge commit sha>` and rerun both checks
 - [ ] `tikiverse` opens the PR from the compare link; body in `docs/catalog/pr-body.md`
 
 ## Smoke Tests

@@ -1,4 +1,3 @@
-# Draft entry for NousResearch/hermes-agent plugin-catalog/quick-eval.yaml. Replace <sha> (twice) with the full main commit to pin.
 name: quick-eval
 title: Quick Eval
 repo: https://github.com/tikiverse/quick-eval

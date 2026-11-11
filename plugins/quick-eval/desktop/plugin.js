@@ -63,7 +63,7 @@ function showPage() { host.navigate(PATH) }
 
 function register(ctx) {
   PLUGIN.ctx = ctx
-  // why: /quick-eval open in a Desktop chat emits this event (quickeval open_in_desktop) instead of opening a browser
+  // why: /quick-eval open in a Desktop chat emits this event (open_in_desktop in __init__.py) instead of opening a browser
   ctx.onEvent(OPEN_EVENT, showPage)
   ctx.registerMany([
     { id: "page", area: ROUTES_AREA, data: { path: PATH }, render: renderPage },
