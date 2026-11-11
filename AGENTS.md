@@ -1,4 +1,4 @@
-# hermes-hackathon-2026
+# quick-eval
 
 ## UI (quick-eval review page)
 - Shared design rules: skill `site-taste` (`taste.py rules --area layout`). This page is an app: one screen, no page scroll.

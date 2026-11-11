@@ -7,9 +7,9 @@ description: Compare the current Hermes reply with other models and judge the an
 
 One command, one log at `~/.hermes/evals/evals.jsonl`.
 
-- `/quick-eval` asks other models the user's last question, shows every answer, then asks which wins.
-- `/quick-eval claude local` uses those aliases; raw ids and `model@provider` work too.
-- `/quick-eval pick A|B|tie|none [note]` records or changes the winner of the last run.
+- `/quick-eval` shows the user's last question, the models they can name, and the commands.
+- `/quick-eval <model> [<model> ...]` asks those models the last question and prints every answer. Names can be listed aliases, provider model IDs, or `model@provider`.
+- `/quick-eval pick A,B [note]` marks the good answers of the last run (`none` if no answer is good).
 - `/quick-eval open` opens the UI: Review (your chats; each turn's answers side by side, mark the good ones), Leaderboard (which model wins).
 
 When a reply looks wrong, refused, or surprising, suggest `/quick-eval` so the case is kept and compared.

@@ -9,6 +9,7 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts" / "demo.sh"
 CONFIG = ROOT / "demo" / "config.yaml"
+README = ROOT / "plugins" / "quick-eval" / "README.md"
 FAKE_OLLAMA = '#!/bin/sh\n[ "$1" = pull ] && echo "$2" >> "$PULLS"\nexit 0\n'
 
 
@@ -63,12 +64,12 @@ def test_a_missing_model_prints_the_pull_command(tmp_path):
 
 
 def test_readme_pulls_exactly_the_demo_models():
-    readme = (ROOT / "README.md").read_text()
-    assert re.findall(r"ollama pull (\S+)", readme) == pull_line()
+    readme = README.read_text()
+    assert re.findall(r"ollama pull ([^\s&]+)", readme) == pull_line()
 
 
 def test_readme_cleanup_removes_what_the_demo_made():
-    readme = (ROOT / "README.md").read_text()
+    readme = README.read_text()
     script = SCRIPT.read_text()
     made = [path.replace("$HOME", "~") for path in re.findall(r"QE_(?:DIR|DEMO_HOME):-([^}]+)}", script)]
     assert sorted(re.search(r"^rm -rf (.+)$", readme, re.M).group(1).split()) == sorted(made)

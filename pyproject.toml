@@ -1,6 +1,7 @@
 [project]
-name = "hermes-hackathon-2026"
+name = "quick-eval"
 version = "0.1.0"
+license = "MIT"
 requires-python = ">=3.11,<3.14"
 dependencies = [
     "hermes-agent>=0.19",
