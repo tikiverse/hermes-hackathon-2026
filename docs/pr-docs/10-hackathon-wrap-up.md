@@ -60,7 +60,7 @@ Links:
 - [x] Real Hermes 0.23 command dispatcher: `desktop` sends the event, `tui`/`cli`/`telegram` open the browser, old one-argument call works
 - [x] README and catalog text say the Desktop page needs Hermes 0.22.3 or newer; older Hermes opens the browser page
 - [x] README and the `/quick-eval open` reply name the one-time Desktop switch (Capabilities > Plugins > Quick Eval)
-- [ ] Click-through in the Hermes Desktop app on a Hermes 0.22.3+ backend (Smoke Test 1). First try, 2026-11-11 13:44: browser URL shown, for the two reasons in Decision 7. The gateway restarted at 13:59 and now runs this code; retry in a NEW Desktop chat. After the next gateway restart, `/quick-eval open` logs `quick_eval.open surface=<x>` in `~/.hermes/logs/agent.log`
+- [x] Click-through in the Hermes Desktop app (backend v0.23.0), 2026-11-11: new Desktop chat, Quick Eval switched on in Capabilities > Plugins, `/quick-eval open` showed the page in the app, no browser tab. The 6 steps of the demo GIF are that run. Earlier tries failed for the 3 reasons in Decision 7
 
 ### Tier 3 - Demo GIF
 
@@ -77,7 +77,7 @@ Links:
 
 ## Smoke Tests
 
-- [ ] **Desktop** · in a NEW Hermes Desktop chat (not one resumed from a terminal), with the plugin enabled and the backend restarted after the plugin updated
+- [x] **Desktop** · in a NEW Hermes Desktop chat (not one resumed from a terminal), with the plugin enabled and the backend restarted after the plugin updated
   1. Once: Capabilities > Plugins > turn Quick Eval on
   2. Ask anything, then `/quick-eval open`
 
