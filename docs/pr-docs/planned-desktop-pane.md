@@ -1,6 +1,6 @@
 # PR planned: quick-eval pane inside Hermes Desktop
 
-Status: planned (after PR 2 merges). Partly done in [PR 10](./10-hackathon-wrap-up.md): the Desktop page shows the existing UI in the SDK's sandboxed frame and `/quick-eval open` opens it. What stays planned here: rebuilding the page from Desktop's own components.
+Status: planned (after PR 2 merges). Partly done in [PR 10](./archive/10-hackathon-wrap-up.md): the Desktop page shows the existing UI in the SDK's sandboxed frame and `/quick-eval open` opens it. What stays planned here: rebuilding the page from Desktop's own components.
 
 Branch: `quick-eval-desktop-pane`
 

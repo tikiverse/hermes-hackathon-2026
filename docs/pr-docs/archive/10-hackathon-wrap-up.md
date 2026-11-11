@@ -1,6 +1,6 @@
 # PR 10: Hackathon wrap-up: demo GIF, validator warnings, `/quick-eval open` in Desktop
 
-Status: underway
+Status: done
 
 Branch: `hackathon-wrap-up`
 
@@ -8,7 +8,7 @@ Branch: `hackathon-wrap-up`
 
 Reply per item, for example `1 yes, 3 no`:
 
-1. Demo steps move to [`docs/demo.md`](../demo.md). Plugin README keeps a 1-line link. Why: `hermes plugins validate` scans the plugin folder's README; `curl_pipe_shell` + `destructive_home_rm` came from the demo section. Result: both gone, one-line `curl | sh` demo stays. Alt: PR 9 (clone, then run; `rm` line stays, still a warning).
+1. Demo steps move to [`docs/demo.md`](../../demo.md). Plugin README keeps a 1-line link. Why: `hermes plugins validate` scans the plugin folder's README; `curl_pipe_shell` + `destructive_home_rm` came from the demo section. Result: both gone, one-line `curl | sh` demo stays. Alt: PR 9 (clone, then run; `rm` line stays, still a warning).
 2. `/quick-eval open`: Desktop chat → Desktop **Quick Eval** page. Terminal or any other surface → browser page, even with Desktop installed. Hermes tells the command its surface (`platform`).
 3. Desktop page (PR 4) is folded in here. PR 9 closed 2026-11-11 as superseded (branch `validator-warnings` kept; reopen it if you pick clone-then-run in decision 1). Close PR 4 after merge.
 4. 2 `private core imports` warnings stay: no public API for Hermes version or signed-in providers. Both guarded by try; reviewer sees them. Hermes issue asking for the 2 seams, posted 2026-11-11: https://github.com/NousResearch/hermes-agent/issues/153833
