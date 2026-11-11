@@ -83,3 +83,17 @@ ollama rm qwen2.5:0.5b deepseek-r1:1.5b
 brew services stop ollama && brew uninstall ollama
 hermes uninstall
 ```
+
+## Recreate the GIF in the README
+
+`docs/img/demo.gif` shows the plugin running in the Hermes Desktop app. To record it again:
+
+1. Open a NEW chat in Hermes Desktop (not one resumed from a terminal) with Quick Eval turned on in Capabilities > Plugins. Ask a question, then run `/quick-eval`, `/quick-eval sonnet qwen2.5:0.5b`, and `/quick-eval open`. On the review page, mark two answers good and press Save.
+1. Capture the Hermes window alone after each step, as `1.png` to `6.png` in one folder: `screencapture -x -o -l <window id> <n>.png`. Start with the question's answer as `1.png`, so the six files match the six steps.
+1. Build the GIF:
+
+   ```sh
+   uv run --with pillow python -I scripts/make-desktop-demo-gif.py <folder>
+   ```
+
+The script crops each capture to the chat or the review page, so the session list and other chats never show. It rewrites the `local` model row of step 2, which prints a file path with a home folder. Look at every frame before you commit the GIF.

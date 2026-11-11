@@ -2,9 +2,9 @@
 
 Quick Eval is a [Hermes Agent](https://hermes-agent.nousresearch.com/) plugin for getting a second opinion on an answer. After the agent replies, run `/quick-eval` to send the same question to other models, compare the answers side by side, and mark the ones that are good. Every comparison is saved to a local JSONL file, so over time you build an evaluation dataset from the questions you ask, and a leaderboard shows which models you trust most.
 
-![Five steps: Hermes answers, /quick-eval lists models, two more models answer, the review page shows the answers side by side, and you mark the good ones](https://raw.githubusercontent.com/tikiverse/quick-eval/main/docs/img/demo.gif)
+![Six steps in Hermes Desktop: Hermes answers, /quick-eval lists models, two more models answer, /quick-eval open shows the answers side by side, you mark the good ones, and save](https://raw.githubusercontent.com/tikiverse/quick-eval/main/docs/img/demo.gif)
 
-*The five steps of a Quick Eval run, from the demo recording.*
+*The six steps of a Quick Eval run, recorded in the Hermes Desktop app.*
 
 ![Three Claude models answer a question about Tiananmen Square in 1989, while a local Qwen model refuses](https://raw.githubusercontent.com/tikiverse/quick-eval/main/docs/img/tiananmen.png)
 

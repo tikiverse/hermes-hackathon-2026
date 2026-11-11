@@ -12,7 +12,7 @@ Reply per item, for example `1 yes, 3 no`:
 2. `/quick-eval open`: Desktop chat → Desktop **Quick Eval** page. Terminal or any other surface → browser page, even with Desktop installed. Hermes tells the command its surface (`platform`).
 3. Desktop page (PR 4) is folded in here. Close PR 4 and PR 9 after merge (both superseded).
 4. 2 `private core imports` warnings stay: no public API for Hermes version or signed-in providers. Both guarded by try; reviewer sees them. Hermes issue to ask for the 2 seams: not posted (needs your OK).
-5. Demo GIF: 5 stills from the recording, app window only. Webcam overlay + burned-in captions removed (no faces in a public README). Rebuild: `scripts/make-demo-gif.py`.
+5. Demo GIF: 6 steps recorded in the real Hermes Desktop app (new chat, `/quick-eval`, `/quick-eval sonnet qwen2.5:0.5b`, `/quick-eval open`, mark A+B, save). Cropped to the chat and the Quick Eval page: no session list, no other chats, no file path (the `local` model row is rewritten). Replaces the screen-recording GIF (webcam, captions). Rebuild: `docs/demo.md`, last section.
 6. Registry PR: fork `shaunporwal/hermes-agent`, branch `plugin-catalog/quick-eval`. `tikiverse` (repo owner, catalog rule 5) opens the PR from the compare link below. `sha` = merge commit of this PR.
 7. Desktop open needs a Hermes that reports the chat's surface to the command (upstream 0.22.3 or newer). Found 2026-11-11 on Shaun's Mac: the first try showed the browser URL because (a) the gateway had started before this change and still ran the old code, and (b) that chat was created in a terminal and resumed in Desktop, so it keeps the surface `tui`. A chat created in Desktop reports `desktop`. Second try, 2026-11-11 14:10 (new Desktop chat): the command reached Desktop (its reply said so) but no page showed. Cause: Desktop ships a plugin's Desktop page off until the user turns it on once (`runtime-loader.ts`: "A unified package's desktop half ships opt-in"); plugins installed through Desktop's own installer are turned on for the user. The plugin cannot preset it. Fix: README names the switch (Capabilities > Plugins > Quick Eval) and the reply of `/quick-eval open` says it. Rec: keep `requires_hermes: ">=0.19"` (the browser page still works on 0.19 to 0.22.2; a hard pin would drop those users from the whole plugin) and say so in the README and the catalog text. Alt: pin `>=0.22.3`. Not a setting.
 
@@ -64,8 +64,9 @@ Links:
 
 ### Tier 3 - Demo GIF
 
-- [x] 5-step GIF in both READMEs and the catalog draft
-- [x] `scripts/make-demo-gif.py` rebuilds it from the recording
+- [x] 6-step GIF recorded in Hermes Desktop, in both READMEs and the catalog draft
+- [x] `scripts/make-desktop-demo-gif.py` rebuilds it from 6 window captures; `tests/test_desktop_demo_gif.py` checks the builder and the committed GIF
+- [x] Old `scripts/make-demo-gif.py` (screen recording) removed
 
 ### Tier 4 - Catalog PR (after merge)
 

@@ -5,7 +5,7 @@ Plugin: https://github.com/tikiverse/quick-eval (subdir `plugins/quick-eval`)
 Pinned SHA: <sha>
 Demo video: https://github.com/tikiverse/quick-eval/issues/3
 
-![The five steps of a Quick Eval run](https://raw.githubusercontent.com/tikiverse/quick-eval/<sha>/docs/img/demo.gif)
+![The six steps of a Quick Eval run, in Hermes Desktop](https://raw.githubusercontent.com/tikiverse/quick-eval/<sha>/docs/img/demo.gif)
 
 ## What it does
 
