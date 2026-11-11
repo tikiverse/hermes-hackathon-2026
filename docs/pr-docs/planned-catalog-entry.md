@@ -1,6 +1,6 @@
 # PR planned: Hackathon entry: quick-eval in the Hermes plugin catalog
 
-Status: planned (after the [hackathon wrap-up PR](./planned-hackathon-wrap-up.md) merges; due 2026-11-11 17:00 EST)
+Status: planned (after the [hackathon wrap-up PR](./10-hackathon-wrap-up.md) merges; due 2026-11-11 17:00 EST)
 
 Branch: `plugin-catalog/quick-eval` in a fork of NousResearch/hermes-agent (`shaunporwal/hermes-agent`)
 

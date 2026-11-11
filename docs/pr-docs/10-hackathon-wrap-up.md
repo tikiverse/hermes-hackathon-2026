@@ -1,6 +1,6 @@
-# PR planned: Hackathon wrap-up: demo GIF, validator warnings, `/quick-eval open` in Desktop
+# PR 10: Hackathon wrap-up: demo GIF, validator warnings, `/quick-eval open` in Desktop
 
-Status: planned (hackathon due 2026-11-11 17:00 EST)
+Status: underway
 
 Branch: `hackathon-wrap-up`
 
