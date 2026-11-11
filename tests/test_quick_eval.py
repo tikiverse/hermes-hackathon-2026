@@ -383,6 +383,13 @@ def test_open_anywhere_else_opens_the_browser_page_even_with_desktop_installed(m
     assert opened == ["browser"] and events.sent == []
 
 
+def test_open_logs_the_surface_hermes_passed(make, opened, caplog):
+    """why: a Desktop chat that resumed a terminal session reports `tui`; the log says so."""
+    with caplog.at_level("INFO"):
+        make().cmd_eval("open", platform="tui")
+    assert "quick_eval.open surface=tui" in caplog.text
+
+
 def test_open_in_desktop_on_a_hermes_without_plugin_events_opens_the_browser(make, opened, monkeypatch):
     monkeypatch.setitem(sys.modules, "hermes_cli.plugin_events", None)
     assert "browser" in make().cmd_eval("open", platform="desktop")

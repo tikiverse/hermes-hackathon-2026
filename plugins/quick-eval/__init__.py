@@ -9,6 +9,7 @@
 why text only: Hermes 0.19 runs plugin commands in the terminal, newer ones in the gateway; a typed command works
 on both and in chat apps, where a terminal picker does not.
 """
+import logging
 import re
 import sys
 import threading
@@ -23,6 +24,7 @@ import standalone  # noqa: E402
 
 from . import discover, evals, settings  # noqa: E402
 
+log = logging.getLogger(__name__)
 PORT = 8765
 UI_URL = f"http://127.0.0.1:{PORT}/"
 NO_TURN = "Nothing to evaluate yet. Ask the agent something first, then run /quick-eval."
@@ -131,6 +133,9 @@ class QuickEval:
         return handler(" ".join(words[1:]), platform=platform) if handler else self.run(words)
 
     def cmd_open(self, _raw: str = "", platform: str | None = None) -> str:
+        """why: the log line names the surface Hermes passed, so a browser page in Desktop can be traced
+        (a chat started in a terminal and resumed in Desktop keeps the surface `tui`)."""
+        log.info("quick_eval.open surface=%s", platform)
         return OPENERS.get(platform, open_ui)()
 
     def cmd_allow(self, _raw: str = "", **_surface) -> str:
