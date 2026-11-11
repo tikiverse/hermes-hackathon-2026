@@ -75,7 +75,8 @@ def run(home: Path, eval_args: str, score_args: str) -> dict:
 def setup_home(home: Path, api: str, trusted: bool) -> None:
     (home / "plugins").mkdir(parents=True, exist_ok=True)
     (home / "plugins" / "quick-eval").symlink_to(PLUGINS_DIR / "quick-eval")
-    entry = {"models": {"fake": {"provider": "fakelocal", "model": "fake-model"}}}
+    entry = {"models": {"fake": {"provider": "fakelocal", "model": "fake-model"}},
+             "params": {"temperature": 0.3, "max_tokens": 512}}
     if trusted:
         entry["llm"] = {"allow_model_override": True, "allow_provider_override": True}
     config = {
@@ -93,24 +94,33 @@ def test_eval_and_score_through_real_hermes(tmp_path, fake_server):
 
     assert "Troops fired on protesters" in out["eval"], out["eval"]
     assert "I can't discuss that." in out["eval"]
-    assert "B wins" in out["score"]
+    assert "Marked good: B" in out["score"]
 
     assert len(requests) == 1
     assert requests[0]["body"]["model"] == "fake-model"
     user_messages = [m for m in requests[0]["body"]["messages"] if m["role"] == "user"]
     assert user_messages[-1]["content"] == "What happened at Tiananmen Square in 1989?"
 
-    lines = [json.loads(l) for l in (tmp_path / "evals" / "evals.jsonl").read_text().splitlines()]
-    assert [r["type"] for r in lines] == ["eval", "score"]
+    lines = [json.loads(line) for line in (tmp_path / "evals" / "evals.jsonl").read_text().splitlines()]
+    assert [r["type"] for r in lines] == ["run", "judgment"]
     assert lines[0]["answers"][1]["model"] == "fake-model"
     assert lines[1]["winner"] == "B"
 
 
-def test_untrusted_plugin_cannot_call_models_without_a_terminal(tmp_path, fake_server):
+def test_every_model_gets_the_same_params(tmp_path, fake_server):
+    api, requests = fake_server
+    setup_home(tmp_path, api, trusted=True)
+    run(tmp_path, "fake", "B")
+    assert requests[0]["body"]["temperature"] == 0.3
+    first = json.loads((tmp_path / "evals" / "evals.jsonl").read_text().splitlines()[0])
+    assert first["params"] == {"temperature": 0.3, "max_tokens": 512, "timeout": 120}
+
+
+def test_untrusted_plugin_calls_no_model_until_allowed(tmp_path, fake_server):
     api, requests = fake_server
     setup_home(tmp_path, api, trusted=False)
 
     out = run(tmp_path, "fake", "B")
 
-    assert "can't call other models" in out["eval"]
+    assert "/quick-eval allow" in out["eval"]
     assert requests == []

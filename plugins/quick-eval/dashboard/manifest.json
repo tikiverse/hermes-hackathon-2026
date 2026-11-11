@@ -1,0 +1,11 @@
+{
+  "name": "quick-eval",
+  "label": "Quick Eval",
+  "description": "Review Hermes chats, compare models on the same prompt, leaderboard",
+  "icon": "Zap",
+  "version": "0.1.0",
+  "tab": { "path": "/quick-eval", "position": "after:sessions" },
+  "entry": "dist/index.js",
+  "css": "dist/style.css",
+  "api": "plugin_api.py"
+}

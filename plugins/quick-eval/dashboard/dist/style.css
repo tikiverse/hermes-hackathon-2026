@@ -1,0 +1,191 @@
+/* why: tokens fall back to Hermes dashboard theme vars; standalone page gets its own light/dark set */
+.quickeval {
+  --ep-bg: var(--color-background, #0d0f12);
+  --ep-panel: var(--color-card, #14171c);
+  --ep-raise: var(--color-muted, #1b1f26);
+  --ep-line: var(--color-border, #272c35);
+  --ep-fg: var(--color-foreground, #e8e6e3);
+  --ep-muted: var(--color-muted-foreground, #8d939c);
+  --ep-accent: var(--color-primary, #5eead4);
+  --ep-on-accent: var(--color-primary-foreground, #04120f);
+  --ep-pass: #4ade80;
+  --ep-fail: #f87171;
+  --ep-tint: color-mix(in srgb, var(--ep-accent) 9%, transparent);
+  --ep-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ep-r: 10px;
+  --ep-r-sm: 8px;
+  --ep-tap: 34px;
+  --ep-rail: 280px;
+  --ep-read: 780px;
+  --ep-max-wide: 1800px; /* why: several answers use the full stage, up to this */
+  --ep-t: .15s;
+  color: var(--ep-fg);
+  font-size: 14px;
+  line-height: 1.55;
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 140px);
+  min-height: 520px;
+}
+@media (prefers-color-scheme: light) {
+  .quickeval-standalone .quickeval {
+    --ep-bg: #f7f7f5; --ep-panel: #ffffff; --ep-raise: #f0f0ed; --ep-line: #e2e2dd;
+    --ep-fg: #1a1c1f; --ep-muted: #5f6670; --ep-accent: #0f766e; --ep-on-accent: #ffffff;
+    --ep-pass: #15803d; --ep-fail: #b91c1c;
+  }
+}
+@media (pointer: coarse) { .quickeval { --ep-tap: 44px; } }
+.quickeval-standalone { margin: 0; background-color: #0d0f12; font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif; }
+.quickeval-standalone .quickeval { height: 100dvh; background-color: var(--ep-bg); }
+.quickeval * { box-sizing: border-box; overflow-wrap: anywhere; }
+.quickeval button, .quickeval input, .quickeval select, .quickeval textarea { font: inherit; color: inherit; }
+.quickeval button { cursor: pointer; }
+
+/* why: header row: brand, judged count, tabs, export */
+.ep-head { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--ep-line); }
+.ep-brand { font-weight: 650; white-space: nowrap; }
+.ep-grow { flex: 1; }
+.ep-meta { color: var(--ep-muted); font: 12px var(--ep-mono); white-space: nowrap; }
+.ep-head .ep-railbtn { display: none; }
+
+/* why: shared controls */
+.ep-btn { min-height: var(--ep-tap); display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; background-color: var(--ep-panel); border: 1px solid var(--ep-line); border-radius: var(--ep-r-sm); color: var(--ep-fg); text-decoration: none; white-space: nowrap; transition-property: border-color, scale; transition-duration: var(--ep-t); }
+.ep-btn:hover { border-color: var(--ep-muted); }
+.ep-btn.pri { background-color: var(--ep-accent); border-color: var(--ep-accent); color: var(--ep-on-accent); font-weight: 600; }
+.ep-seg { display: inline-flex; border: 1px solid var(--ep-line); border-radius: var(--ep-r-sm); overflow: hidden; flex: none; }
+.ep-segb { min-height: var(--ep-tap); min-width: var(--ep-tap); display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; background-color: transparent; border: 0; color: var(--ep-muted); font-size: 13px; transition-property: background-color, color, scale; transition-duration: var(--ep-t); }
+.ep-segb + .ep-segb { border-left: 1px solid var(--ep-line); }
+.ep-segb:hover { color: var(--ep-fg); }
+.ep-segb.on { background-color: var(--ep-raise); color: var(--ep-fg); }
+.quickeval kbd { font: 11px var(--ep-mono); color: var(--ep-muted); border: 1px solid var(--ep-line); border-radius: 4px; padding: 0 4px; }
+.ep-btn.pri kbd { color: inherit; border-color: currentColor; opacity: .7; }
+.ep-input { min-height: var(--ep-tap); width: 100%; background-color: var(--ep-bg); color: var(--ep-fg); border: 1px solid var(--ep-line); border-radius: var(--ep-r-sm); padding: 6px 10px; }
+textarea.ep-input { resize: vertical; margin-top: 8px; }
+.ep-input:focus, .ep-segb:focus-visible, .ep-btn:focus-visible, .ep-item:focus-visible, .ep-col:focus-visible { outline: 2px solid var(--ep-accent); outline-offset: -1px; }
+.ep-label { font: 600 11px var(--ep-mono); color: var(--ep-accent); border: 1px solid var(--ep-accent); border-radius: 4px; padding: 0 5px; flex: none; }
+.ep-hint { margin: 0; font-size: 12px; color: var(--ep-muted); }
+.ep-unsaved { width: 7px; height: 7px; border-radius: 50%; background-color: currentColor; }
+
+/* why: rail + main. The rail's own filters sit on top of the list they filter. */
+.ep-body { display: grid; grid-template-columns: var(--ep-rail) minmax(0, 1fr); flex: 1; min-height: 0; }
+.ep-body > * { min-width: 0; }
+.ep-rail { border-right: 1px solid var(--ep-line); display: flex; flex-direction: column; min-height: 0; }
+.ep-rail-top { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-bottom: 1px solid var(--ep-line); }
+.ep-rail-top .ep-range { display: flex; }
+.ep-rail-top .ep-range .ep-segb { flex: 1; padding: 0 6px; min-width: 0; }
+.ep-rail h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ep-muted); margin: 0; font-weight: 600; }
+.ep-rail h3 { font-size: 11px; color: var(--ep-muted); margin: 12px 8px 4px; font-weight: 600; }
+.ep-rail-list { overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 2px; flex: 1; min-height: 0; }
+.ep-item { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 8px 10px; border: 0; border-radius: var(--ep-r-sm); background-color: transparent; color: var(--ep-fg); transition-property: background-color, scale; transition-duration: var(--ep-t); }
+.ep-item:hover { background-color: var(--ep-panel); }
+.ep-item.on { background-color: var(--ep-raise); }
+.ep-item-t { display: flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; }
+.ep-item-s { font-size: 12px; color: var(--ep-muted); white-space: nowrap; }
+.ep-livedot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--ep-pass); flex: none; }
+.ep-main { display: flex; flex-direction: column; min-height: 0; }
+.ep-stage { flex: 1; overflow-y: auto; padding: 18px 24px 28px; container-type: size; }
+.ep-toolbar { display: flex; align-items: center; gap: 8px; }
+
+/* why: transcript: past turns dimmed, the turn under review boxed */
+.ep-thread { max-width: var(--ep-read); margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.ep-thread > * { min-width: 0; }
+.ep-past { display: flex; flex-direction: column; gap: 10px; opacity: .45; cursor: pointer; transition: opacity var(--ep-t); }
+.ep-past:hover { opacity: .8; }
+.ep-msg { display: flex; flex-direction: column; max-width: 88%; min-width: 0; }
+.ep-msg.user { align-self: flex-end; align-items: flex-end; }
+.ep-who { font-size: 12px; color: var(--ep-muted); margin-bottom: 4px; }
+.ep-who b { color: var(--ep-fg); font-weight: 600; }
+.ep-bubble { padding: 10px 14px; border-radius: 14px; background-color: var(--ep-panel); border: 1px solid var(--ep-line); white-space: pre-wrap; }
+.ep-msg.user .ep-bubble { background-color: var(--ep-raise); border-bottom-right-radius: 4px; }
+.ep-msg.asst .ep-bubble { border-bottom-left-radius: 4px; }
+.ep-now { display: flex; flex-direction: column; gap: 12px; padding: 12px; margin: 0 -12px; border: 1px solid var(--ep-line); border-radius: calc(var(--ep-r-sm) + 12px); background-color: var(--ep-tint); scroll-margin-top: 12px; }
+.ep-now > * { min-width: 0; }
+.ep-now-label { display: inline-flex; align-items: center; gap: 6px; font: 11px var(--ep-mono); color: var(--ep-accent); }
+.ep-dot { width: 8px; height: 8px; border-radius: 50%; }
+.ep-dot.pass { background-color: var(--ep-pass); }
+.ep-dot.fail { background-color: var(--ep-fail); }
+.ep-chips { display: flex; flex-direction: column; gap: 6px; }
+.ep-chip { border: 1px solid var(--ep-line); border-radius: var(--ep-r-sm); background-color: var(--ep-panel); min-width: 0; }
+.ep-chip > summary { list-style: none; cursor: pointer; display: flex; gap: 8px; align-items: center; min-height: var(--ep-tap); padding: 4px 10px; font-size: 13px; }
+.ep-chip > summary::-webkit-details-marker { display: none; }
+.ep-fn { font-family: var(--ep-mono); color: var(--ep-accent); flex: none; }
+.ep-arg { font-family: var(--ep-mono); color: var(--ep-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.ep-pre { margin: 0; padding: 10px; border-top: 1px solid var(--ep-line); font: 12px/1.5 var(--ep-mono); white-space: pre-wrap; max-height: 320px; overflow-y: auto; }
+.ep-fold { font-size: 13px; color: var(--ep-muted); }
+.ep-fold > summary { cursor: pointer; }
+
+/* why: answers to the turn under review: equal columns; tap one to mark it good */
+.ep-cgrid { display: grid; grid-template-columns: repeat(var(--ep-cols, 2), minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+.ep-col { display: flex; flex-direction: column; min-width: 0; padding: 0; text-align: left; border: 1px solid var(--ep-line); border-radius: var(--ep-r-sm); background-color: var(--ep-panel); color: var(--ep-fg); transition-property: border-color, box-shadow; transition-duration: var(--ep-t); }
+.ep-col:hover { border-color: var(--ep-muted); }
+.ep-col.won { border-color: var(--ep-accent); box-shadow: 0 0 0 1px var(--ep-accent); }
+.ep-col-h { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; width: 100%; padding: 8px 12px; border-bottom: 1px solid var(--ep-line); font-size: 12px; color: var(--ep-muted); }
+.ep-col-h b { color: var(--ep-fg); font-size: 13px; min-width: 0; }
+.ep-col-meta { margin-left: auto; white-space: nowrap; }
+/* why: several answers fill the stage: one row, full height; long text scrolls inside its card, never the page */
+.ep-now.multi { width: min(100cqw, var(--ep-max-wide)); height: 100cqh; align-self: center; margin: 0; }
+.ep-now.multi .ep-cgrid { flex: 1; min-height: 0; }
+.ep-now.multi .ep-col { min-height: 0; }
+.ep-now.multi .ep-col-b { flex: 1; min-height: 0; overflow-y: auto; }
+.ep-col-b { padding: 12px; white-space: pre-wrap; }
+.ep-err { color: var(--ep-fail); }
+
+/* why: Leaderboard */
+.ep-body.tab-board { display: block; overflow-y: auto; }
+.ep-board { max-width: 900px; margin: 0 auto; padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; }
+.ep-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.ep-table th { text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--ep-muted); padding: 8px 10px; border-bottom: 1px solid var(--ep-line); white-space: nowrap; }
+.ep-table td { padding: 9px 10px; border-bottom: 1px solid var(--ep-line); white-space: nowrap; }
+.ep-table td:first-child { font-family: var(--ep-mono); white-space: normal; }
+
+/* why: save bar under the stage, not fixed, so it never covers dashboard chrome */
+.ep-bar { border-top: 1px solid var(--ep-line); background-color: var(--ep-panel); padding: 10px 16px; }
+.ep-bar-in { max-width: calc(var(--ep-read) + 200px); margin: 0 auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.ep-note { flex: 1; min-width: 180px; width: auto; }
+
+.ep-empty { color: var(--ep-muted); padding: 40px 12px; text-align: center; }
+.ep-empty.sm { padding: 16px 8px; font-size: 13px; }
+.ep-toast { position: fixed; bottom: 84px; left: 50%; transform: translate(-50%, 12px); background-color: var(--ep-panel); border: 1px solid var(--ep-accent); border-radius: 999px; padding: 7px 18px; opacity: 0; transition-property: opacity, transform; transition-duration: var(--ep-t); pointer-events: none; z-index: 50; }
+.ep-toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+/* why: phone: one column. The rail becomes a full-screen picker behind a header button. Bar: choices row, then note + save. */
+@media (max-width: 820px) {
+  .ep-table th { white-space: normal; overflow-wrap: normal; letter-spacing: .02em; }
+  .ep-table th, .ep-table td { padding: 8px 6px; }
+  .ep-table th:last-child, .ep-table td:last-child { display: none; }
+  .quickeval { min-height: 0; }
+  .ep-head { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
+  .ep-brand, .ep-meta, .ep-wide, .quickeval kbd { display: none; }
+  .ep-head > .ep-grow { display: none; }
+  .ep-tabs { flex: 1; min-width: 0; }
+  .ep-tabs .ep-segb { flex: 1 1 auto; min-width: 0; white-space: nowrap; }
+  .ep-head .ep-railbtn { display: flex; flex-basis: 100%; min-width: 0; max-width: 100%; justify-content: space-between; min-height: 44px; text-align: left; }
+  .ep-railbtn-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .ep-chev { color: var(--ep-muted); transition-property: rotate; transition-duration: var(--ep-t); }
+  .ep-head.rail-open .ep-chev { rotate: 180deg; }
+  .ep-body { grid-template-columns: minmax(0, 1fr); position: relative; }
+  .ep-rail { display: none; }
+  .ep-body.rail-open .ep-rail { display: flex; position: absolute; inset: 0; z-index: 20; background-color: var(--ep-bg); border-right: 0; }
+  .ep-item { min-height: 52px; justify-content: center; }
+  .ep-stage { padding: 14px 12px 20px; }
+  .ep-now { margin: 0; }
+  /* why: phone: answers are a swipe deck; the next card peeks so the swipe is visible */
+  .ep-now.multi { width: auto; }
+  .ep-now.multi .ep-cgrid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .ep-now.multi .ep-col { flex: 0 0 88%; scroll-snap-align: center; }
+  .ep-now.multi .ep-msg.user .ep-bubble:not(.open) { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  .ep-msg { max-width: 94%; }
+  .ep-cgrid { grid-template-columns: minmax(0, 1fr); }
+  .ep-bar { padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }
+  .ep-bar-in { gap: 8px; }
+  .ep-bar .ep-meta { display: none; }
+  .ep-bar .ep-seg { flex: 1 1 100%; }
+  .ep-bar .ep-seg .ep-segb { flex: 1; min-height: 44px; padding: 0 4px; }
+  .ep-bar .ep-btn.pri { min-height: 44px; }
+  .ep-note { min-width: 0; flex: 1; }
+  .quickeval .ep-input { font-size: 16px; min-height: 44px; }
+  .ep-segb { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { .quickeval * { transition: none !important; } }
+/* why: tactile press feedback; after hover rules so :active wins */
+.ep-btn:active, .ep-segb:active, .ep-item:active { scale: 0.96; }

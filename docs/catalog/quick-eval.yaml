@@ -1,0 +1,23 @@
+# Draft entry for NousResearch/hermes-agent plugin-catalog/quick-eval.yaml. Set sha to the merged main commit.
+name: quick-eval
+title: Quick Eval
+repo: https://github.com/tikiverse/hermes-hackathon-2026
+sha: <40-hex main commit after PR 2 merges>
+subdir: plugins/quick-eval
+version: "0.1.0"
+description: "Ask other models your last question with /quick-eval, see every answer side by side, and mark the good ones (several can be good). Runs and picks go to an append-only JSONL file; a review page (/quick-eval open, or a Quick Eval dashboard tab) has Review and Leaderboard views. Disclosure — sends only your last prompt to the models you pick, through ctx.llm and your configured providers; checks 127.0.0.1 ports 11434, 1234 and 8000 for local model servers; writes ~/.hermes/evals/evals.jsonl and its own section of config.yaml (after you confirm); reads ~/.hermes/state.db read-only for the Review tab; /quick-eval open serves the page on 127.0.0.1:8765; no shell commands, credentials, telemetry or self-updates."
+maintainer: tikiverse
+tier: community
+category: models
+requires_hermes: ">=0.19"
+docs_url: https://github.com/tikiverse/hermes-hackathon-2026/tree/main/plugins/quick-eval#readme
+readme: true
+screenshots: []
+platforms: []
+known_issues:
+  - "Local thinking models (Qwen3 and similar) can return no answer on a server with a small default token cap: Hermes drops a custom provider's extra_body and max_tokens on plugin calls (hermes-agent#124290, #50132). Turn thinking off on the server."
+capabilities:
+  provides_tools: []
+  provides_hooks: [post_llm_call]
+  provides_middleware: []
+  requires_env: []

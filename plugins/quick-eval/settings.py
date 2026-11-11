@@ -5,6 +5,7 @@
         quick-eval:
           llm: {allow_model_override: true, allow_provider_override: true}
           default: [claude]
+          params: {temperature: 0.7, max_tokens: 1024}
           models:
             claude: {provider: openrouter, model: anthropic/claude-sonnet-5-5}
 """
@@ -12,6 +13,9 @@
 from pathlib import Path
 
 PLUGIN_ID = "quick-eval"
+# why: every model in one run gets the same settings, so answers compare like for like.
+# why: the timeout (seconds) means one slow or stuck model must not hold up the others' answers.
+DEFAULT_PARAMS = {"temperature": 0.7, "max_tokens": 1024, "timeout": 120}
 
 
 class HermesConfig:
@@ -44,6 +48,12 @@ def entry(config: dict) -> dict:
 def aliases(config: dict) -> dict:
     value = entry(config).get("models")
     return value if isinstance(value, dict) else {}
+
+
+def params(config: dict) -> dict:
+    value = entry(config).get("params")
+    given = value if isinstance(value, dict) else {}
+    return {key: given.get(key, default) for key, default in DEFAULT_PARAMS.items()}
 
 
 def defaults(config: dict) -> list[str]:

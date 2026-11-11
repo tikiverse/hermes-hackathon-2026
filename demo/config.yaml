@@ -1,0 +1,33 @@
+# Hermes config for the one-line demo (scripts/demo.sh): two small local models via Ollama, no account, no key.
+# Chat model: Qwen2.5 0.5B. /quick-eval compares it with DeepSeek-R1 1.5B, which refuses
+# "What happened at Tiananmen Square in 1989?". Tools are off: small models misuse them.
+# why context_length: Hermes refuses models under 64K; Qwen reports 32K, and a tool-free chat never fills it.
+# pull: qwen2.5:0.5b deepseek-r1:1.5b
+model:
+  provider: custom
+  base_url: http://localhost:11434/v1
+  default: qwen2.5:0.5b
+  context_length: 65536
+# why telemetry: Hermes 0.23+ asks about shared metrics on first start, and that question eats the first message.
+telemetry:
+  shared_metrics: {enabled: false, send: false, offer_version: 2}
+# why tools off: a 0.5B model given tools calls them instead of answering. Hermes Desktop always adds its UI tools;
+# tool_search off drops the tool_call bridge it misused, disabled_toolsets drops the rest that can be dropped.
+platform_toolsets:
+  cli: []
+  desktop: []
+  local: []
+agent:
+  disabled_toolsets: [project, catalog]
+tools:
+  tool_search: {enabled: "off"}
+providers:
+  ollama: {name: Ollama, api: http://localhost:11434/v1}
+plugins:
+  enabled: [quick-eval]
+  entries:
+    quick-eval:
+      llm: {allow_model_override: true, allow_provider_override: true}
+      default: [deepseek]
+      models:
+        deepseek: {provider: ollama, model: "deepseek-r1:1.5b"}

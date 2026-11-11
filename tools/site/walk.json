@@ -1,0 +1,83 @@
+{
+ "ready": ".ep-bar",
+ "steps": [
+  {
+   "name": "phone-review",
+   "viewport": "phone",
+   "actions": [
+    {
+     "click": ".ep-head .ep-segb:has-text('Review')"
+    },
+    {
+     "wait": 600
+    }
+   ],
+   "expect": ".ep-bar, .ep-table, .ep-empty"
+  },
+  {
+   "name": "phone-leaderboard",
+   "viewport": "phone",
+   "actions": [
+    {
+     "click": ".ep-head .ep-segb:has-text('Leaderboard')"
+    },
+    {
+     "wait": 600
+    }
+   ],
+   "expect": ".ep-bar, .ep-table, .ep-empty"
+  },
+  {
+   "name": "phone-picker",
+   "viewport": "phone",
+   "actions": [
+    {
+     "click": ".ep-railbtn"
+    },
+    {
+     "wait": 400
+    }
+   ],
+   "expect": ".ep-rail-list .ep-item"
+  },
+  {
+   "name": "phone-small-review",
+   "viewport": "phone-small",
+   "actions": [
+    {
+     "click": ".ep-head .ep-segb:has-text('Review')"
+    },
+    {
+     "wait": 600
+    }
+   ],
+   "expect": ".ep-bar, .ep-table, .ep-empty"
+  },
+  {
+   "name": "phone-small-leaderboard",
+   "viewport": "phone-small",
+   "actions": [
+    {
+     "click": ".ep-head .ep-segb:has-text('Leaderboard')"
+    },
+    {
+     "wait": 600
+    }
+   ],
+   "expect": ".ep-bar, .ep-table, .ep-empty"
+  },
+  {
+   "name": "phone-small-picker",
+   "viewport": "phone-small",
+   "actions": [
+    {
+     "click": ".ep-railbtn"
+    },
+    {
+     "wait": 400
+    }
+   ],
+   "expect": ".ep-rail-list .ep-item"
+  }
+ ]
+}

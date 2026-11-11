@@ -19,6 +19,6 @@ for name in "$@"; do
     continue
   fi
   ln -sfn "$src" "$dest/$name"
-  (cd "$repo" && uv run hermes plugins enable "$name")
+  if command -v hermes >/dev/null; then hermes plugins enable "$name"; else (cd "$repo" && uv run hermes plugins enable "$name"); fi
   echo "linked $name -> $dest/$name"
 done

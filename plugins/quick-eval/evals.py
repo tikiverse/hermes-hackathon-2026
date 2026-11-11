@@ -1,11 +1,25 @@
+"""why: ask other models the user's last question and build the v1 log lines for it."""
+import re
 import string
 import time
-import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from functools import partial
+
+from . import quickeval_schema as schema
 
 LABELS = string.ascii_uppercase
-SCORE_WORDS = {"TIE", "NONE"}
+# why: a reasoning model can spend its whole output budget thinking and return no text; say so, never show a blank.
+EMPTY = "empty answer: the model returned no text (a reasoning model may have used its token limit thinking)"
+HF_REPO = re.compile(r"models--[^/]*?--([^/]+)")
+
+
+def short_model(model):
+    """why: a local server names its model by a cache path; show the repo name instead."""
+    if not model or not model.startswith("/"):
+        return model
+    found = HF_REPO.search(model)
+    return found.group(1) if found else model.rstrip("/").rsplit("/", 1)[-1]
 
 
 @dataclass(frozen=True)
@@ -16,98 +30,111 @@ class Target:
 
     def describe(self) -> str:
         where = f" via {self.provider}" if self.provider else ""
+        model = short_model(self.model)
         if self.name == self.model:
-            return f"{self.model}{where}"
-        return f"{self.name} ({self.model}{where})"
+            return f"{model}{where}"
+        return f"{self.name} ({model}{where})"
+
+
+def target_for(name, aliases):
+    """why: a typed name is an alias, `model@provider`, or a bare model id."""
+    alias = aliases.get(name)
+    if isinstance(alias, dict) and alias.get("model"):
+        return Target(name, alias["model"], alias.get("provider"))
+    if "@" in name:
+        model, provider = name.rsplit("@", 1)
+        return Target(name, model, provider or None)
+    return Target(name, name)
 
 
 def resolve_targets(names: list[str], aliases: dict) -> list[Target]:
-    """Turn typed names into targets: an alias, `model@provider`, or a bare model id."""
-    targets = []
-    for name in names:
-        alias = aliases.get(name)
-        if isinstance(alias, dict) and alias.get("model"):
-            targets.append(Target(name, alias["model"], alias.get("provider")))
-        elif "@" in name:
-            model, provider = name.rsplit("@", 1)
-            targets.append(Target(name, model, provider or None))
-        else:
-            targets.append(Target(name, name))
-    return targets
+    return [target_for(name, aliases) for name in names]
 
 
-def _ask(complete, prompt: str, target: Target) -> dict:
-    answer = {"alias": target.name, "provider": target.provider, "model": target.model}
+def split_same(targets, model):
+    """why: asking the model that wrote answer A again compares it with itself."""
+    kept = [t for t in targets if t.model != model]
+    return kept, [t for t in targets if t.model == model]
+
+
+def skipped_note(skipped):
+    names = ", ".join(t.name for t in skipped)
+    return f"Skipped {names}: it wrote the reply you saw." if skipped else ""
+
+
+def call_model(complete, prompt, target, params):
+    result = complete([{"role": "user", "content": prompt}], provider=target.provider, model=target.model,
+                      purpose="quick-eval", **params)
+    text = (result.text or "").strip()
+    return {"text": text, "model": getattr(result, "model", None) or target.model, "error": None if text else EMPTY}
+
+
+def ask(complete, prompt, target, label, params):
     start = time.perf_counter()
     try:
-        result = complete(
-            [{"role": "user", "content": prompt}],
-            provider=target.provider,
-            model=target.model,
-            purpose="quick-eval",
-        )
-        answer["text"] = result.text or ""
-        answer["model"] = getattr(result, "model", None) or target.model
-        answer["provider"] = target.provider or getattr(result, "provider", None)
-    except Exception as exc:
-        answer["text"] = ""
-        answer["error"] = f"{type(exc).__name__}: {exc}"
-    answer["latency_ms"] = round((time.perf_counter() - start) * 1000)
-    return answer
+        got = call_model(complete, prompt, target, params)
+    except Exception as exc:  # why: one broken model must not sink the whole eval
+        got = {"text": "", "model": target.model, "error": f"{type(exc).__name__}: {exc}"}
+    latency = round((time.perf_counter() - start) * 1000)
+    return schema.answer(label, got["model"], got["text"], provider=target.provider, latency_ms=latency,
+                         error=got["error"])
 
 
-def run_eval(turn: dict, targets: list[Target], complete) -> dict:
-    """Ask every target the turn's question in parallel. Answer A is the original reply."""
-    answers = [
-        {
-            "label": "A",
-            "source": "original",
-            "model": turn.get("model"),
-            "text": turn["response"],
-        }
-    ]
-    with ThreadPoolExecutor(max_workers=max(1, len(targets))) as pool:
-        futures = [pool.submit(_ask, complete, turn["prompt"], t) for t in targets]
-        for label, future in zip(LABELS[1:], futures):
-            answers.append({"label": label, "source": "rerun", **future.result()})
-    return {
-        "type": "eval",
-        "id": uuid.uuid4().hex[:8],
-        "ts": time.time(),
-        "session_id": turn.get("session_id"),
-        "prompt": turn["prompt"],
-        "answers": answers,
-    }
+def run_eval(turn: dict, targets: list[Target], complete, params: dict) -> dict:
+    """why: answer A is the reply the user saw; B.. are the targets, asked in parallel with the prompt + same params."""
+    original = schema.answer("A", turn.get("model"), turn["response"])
+    labels = zip(targets, LABELS[1:], strict=False)
+    jobs = [partial(ask, complete, turn["prompt"], t, label, params) for t, label in labels]
+    with ThreadPoolExecutor(max_workers=max(1, len(jobs))) as pool:
+        reruns = list(pool.map(call_job, jobs))
+    return schema.run_record(turn["prompt"], [original, *reruns], session_id=turn.get("session_id"), params=params)
 
 
-def format_eval(record: dict) -> str:
-    lines = [f"Eval {record['id']}: {record['prompt']}", ""]
-    for answer in record["answers"]:
-        tag = "original" if answer.get("source") == "original" else f"{answer.get('latency_ms', 0)} ms"
-        lines.append(f"── {answer['label']} · {answer.get('model') or 'unknown'} · {tag} ──")
-        lines.append(answer.get("error") and f"[error] {answer['error']}" or answer["text"].strip())
-        lines.append("")
-    labels = "|".join(a["label"] for a in record["answers"])
-    lines.append(f"Score it: /score {labels}|tie|none [note]")
+def call_job(job):
+    return job()
+
+
+def answer_lines(a):
+    tag = f"{a['latency_ms']} ms" if a.get("latency_ms") is not None else "original"
+    body = f"[error] {a['error']}" if a.get("error") else a["text"].strip()
+    return [f"── {a['label']} · {short_model(a.get('model')) or 'unknown'} · {tag} ──", body, ""]
+
+
+def format_eval(run: dict) -> str:
+    lines = [f"Eval {run['id']}: {run['prompt']}", ""]
+    lines += [line for a in run["answers"] for line in answer_lines(a)]
     return "\n".join(lines)
 
 
-def parse_score(raw: str, record: dict) -> dict | str:
-    """Return a score record, or an error message string."""
-    labels = [a["label"] for a in record["answers"]]
-    usage = f"Usage: /score {'|'.join(labels)}|tie|none [note]"
+def pick_hint(run: dict) -> str:
+    good = ",".join(a["label"] for a in run["answers"][:2])
+    return f"Next: /quick-eval pick {good} [note] marks the good answers (or: none) · /quick-eval open to review"
+
+
+def pick_words(word: str, run: dict) -> tuple:
+    """why: 'b' is one winner, 'a,b,c' marks several good answers, tie/none are outcomes."""
+    if word.lower() in schema.OUTCOMES:
+        winner = schema.check_winner(run, word.lower())
+        return winner, schema.good_of(run, {"winner": winner})
+    good = schema.check_good(run, [w.strip().upper() for w in word.split(",") if w.strip()])
+    return schema.winner_of(good), good
+
+
+def parse_pick(raw: str, run: dict) -> dict | str:
+    """why: '/quick-eval pick b great answer' -> judgment; returns a usage string on bad input."""
+    usage = f"Usage: /quick-eval pick A,B [note]: the good answers ({', '.join(schema.labels_of(run))}), or none"
     parts = raw.strip().split(None, 1)
     if not parts:
         return usage
-    winner = parts[0].upper()
-    if winner not in labels and winner not in SCORE_WORDS:
+    try:
+        winner, good = pick_words(parts[0], run)
+    except ValueError:
         return f"Unknown choice {parts[0]!r}. {usage}"
-    winner_answer = next((a for a in record["answers"] if a["label"] == winner), None)
-    return {
-        "type": "score",
-        "eval_id": record["id"],
-        "ts": time.time(),
-        "winner": winner.lower() if winner in SCORE_WORDS else winner,
-        "winner_model": winner_answer.get("model") if winner_answer else None,
-        "note": parts[1].strip() if len(parts) > 1 else "",
-    }
+    return schema.judgment_record(run["id"], winner, note=parts[1].strip() if len(parts) > 1 else "", good=good)
+
+
+def verdict_text(run: dict, winner: str, good: list | None = None) -> str:
+    if winner == "none":
+        return "Marked: no good answer"
+    labels = good or (schema.labels_of(run) if winner == "tie" else [winner])
+    return "Marked good: " + ", ".join(f"{label} ({short_model(schema.winner_model(run, label))})" for label in labels)

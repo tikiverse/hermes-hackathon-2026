@@ -1,6 +1,7 @@
 name: quick-eval
 version: 0.1.0
-description: Re-ask your last question to other models, compare the answers side by side, and score them
+requires_hermes: ">=0.19"
+description: Ask other models your last question, pick the best answer, and review it all in a browser (compare view + leaderboard)
 provides_tools: []
 provides_hooks:
   - post_llm_call
