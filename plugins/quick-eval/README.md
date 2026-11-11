@@ -96,7 +96,7 @@ plugins:
 
 ### Review page
 
-Run `/quick-eval open`, or open the **Quick Eval** tab in `hermes dashboard`. In Hermes Desktop, the command shows the **Quick Eval** page from the sidebar. In a terminal, it always opens the browser page, even when Hermes Desktop is installed. The page reads your Hermes chat history and has two tabs:
+Run `/quick-eval open`, or open the **Quick Eval** tab in `hermes dashboard`. In Hermes Desktop, the command shows the **Quick Eval** page from the sidebar. That needs Hermes 0.22.3 or newer behind Desktop; on an older Hermes the command opens the browser page instead. In a terminal, it always opens the browser page, even when Hermes Desktop is installed. The page reads your Hermes chat history and has two tabs:
 
 - **Review** lists your chats, with the current one pinned. Each chat turn shows the agent's reply, or one column per model after a `/quick-eval` run. Select every good answer, then optionally add a note and the answer you expected.
 - **Leaderboard** shows, for each model, how often its answer was marked good and how many times it was the only good answer.

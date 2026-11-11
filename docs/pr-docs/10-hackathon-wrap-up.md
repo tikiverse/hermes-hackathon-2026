@@ -14,6 +14,7 @@ Reply per item, for example `1 yes, 3 no`:
 4. 2 `private core imports` warnings stay: no public API for Hermes version or signed-in providers. Both guarded by try; reviewer sees them. Hermes issue to ask for the 2 seams: not posted (needs your OK).
 5. Demo GIF: 5 stills from the recording, app window only. Webcam overlay + burned-in captions removed (no faces in a public README). Rebuild: `scripts/make-demo-gif.py`.
 6. Registry PR: fork `shaunporwal/hermes-agent`, branch `plugin-catalog/quick-eval`. `tikiverse` (repo owner, catalog rule 5) opens the PR from the compare link below. `sha` = merge commit of this PR.
+7. Desktop open needs Hermes 0.22.3 or newer. Found 2026-11-11 on Shaun's Mac: Desktop was connected to a Hermes 0.21.0 gateway; it reports the surface as `tui` and has no plugin event stream, so `/quick-eval open` showed the browser URL. Rec: keep `requires_hermes: ">=0.19"` (the browser page still works on 0.19 to 0.22.2; a hard pin would drop those users from the whole plugin) and say so in the README and the catalog text. Alt: pin `>=0.22.3`. Not a setting: Desktop's own local backend (Hermes 0.22.7) needs none.
 
 This PR finishes the Hermes Agent Plugin Hackathon entry: it clears the validator warnings it can, makes `/quick-eval open` use Desktop when it runs in Desktop, adds the demo GIF, and prepares the catalog PR.
 
@@ -57,7 +58,8 @@ Links:
 - [x] Desktop half listens for the open event and navigates to its page
 - [x] Unit tests: Desktop → event, other surfaces → browser, old Hermes → browser
 - [x] Real Hermes 0.23 command dispatcher: `desktop` sends the event, `tui`/`cli`/`telegram` open the browser, old one-argument call works
-- [ ] Click-through in the Hermes Desktop app (not done; Smoke Test 1)
+- [x] README and catalog text say the Desktop page needs Hermes 0.22.3 or newer; older Hermes opens the browser page
+- [ ] Click-through in the Hermes Desktop app on a Hermes 0.22.3+ backend (Smoke Test 1). First try, 2026-11-11 13:44, Desktop on a 0.21.0 gateway: browser URL shown, as Decision 7 says; the 0.21.0 process also started before this change, so it ran the old code
 
 ### Tier 3 - Demo GIF
 
@@ -73,7 +75,7 @@ Links:
 
 ## Smoke Tests
 
-- [ ] **Desktop** · in Hermes Desktop with the plugin enabled
+- [ ] **Desktop** · in Hermes Desktop on a Hermes 0.22.3+ backend, with the plugin enabled and the backend restarted after the plugin updated
   1. Ask anything, then `/quick-eval open`
 
   **Pass if:**
