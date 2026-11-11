@@ -91,7 +91,7 @@ Links:
   **Pass if:**
   - a browser tab opens at `http://127.0.0.1:8765`
 
-- [ ] **Validator** · `hermes plugins validate "$PWD/plugins/quick-eval"`
+- [x] **Validator** · `hermes plugins validate "$PWD/plugins/quick-eval"`
 
   **Pass if:**
   - `Validation passed`
