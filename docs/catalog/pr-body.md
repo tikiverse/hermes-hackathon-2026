@@ -22,6 +22,7 @@ Quick Eval gets a second opinion on an answer. After the agent replies, `/quick-
 - `ctx.llm`: the model calls, through your configured providers.
 - Desktop plugin SDK (`desktop/plugin.js`): a sidebar page. Only `@hermes/plugin-sdk` and `react` are imported; it listens for `plugin.quick-eval.open` (sent with `broadcast_plugin_event`) and calls `host.navigate`.
 - Dashboard tab (`dashboard/manifest.json`, `plugin_api.py`): the same review page in `hermes dashboard`.
+- Desktop ships a plugin's Desktop page off until it is switched on once (Capabilities > Plugins). Installing through Desktop's installer turns it on; the plugin README shows the switch with a GIF for other installs.
 
 ## Disclosure (rule 13)
 
@@ -36,8 +37,8 @@ Quick Eval gets a second opinion on an answer. After the agent replies, `/quick-
 
 `hermes plugins validate <plugin dir>` at the pinned SHA passes (including `desktop surface` and `no core override`). One warning remains:
 
-- `private core imports`: `hermes_cli.__version__` (`__init__.py`) and `hermes_cli.model_switch.list_authenticated_providers` (`discover.py`). Hermes 0.19 ignores `requires_hermes`, so the version read lets an older Hermes show "update Hermes" instead of a half-working command; there is no public call for it. The provider list has no public equivalent either. Both are wrapped so a change in Hermes empties that part of the list instead of breaking the command. Happy to move to a public seam if one exists.
+- `private core imports`: `hermes_cli.__version__` (`__init__.py`) and `hermes_cli.model_switch.list_authenticated_providers` (`discover.py`). Hermes 0.19 ignores `requires_hermes`, so the version read lets an older Hermes show "update Hermes" instead of a half-working command; there is no public call for it. The provider list has no public equivalent either. Both are wrapped so a change in Hermes empties that part of the list instead of breaking the command. I opened https://github.com/NousResearch/hermes-agent/issues/153833 asking for both; happy to move to a public seam when one exists.
 
 `requires_hermes: ">=0.19"` is declared in both `plugin.yaml` and the entry; the tests run on 0.19 and 0.23.
 
-Tests: 240 pass in the plugin repo (`uv run pytest -m "not hermes"`), plus 4 that start the real Hermes CLI.
+Tests: 254 pass in the plugin repo (`uv run pytest -m "not hermes"`), plus 4 that start the real Hermes CLI.
