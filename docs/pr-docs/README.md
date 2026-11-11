@@ -1,4 +1,4 @@
-# hermes-hackathon-2026 PR Docs
+# quick-eval PR Docs
 
 Short PR-specific notes for completed and planned work.
 
