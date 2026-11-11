@@ -187,6 +187,7 @@ def test_several_answers_are_a_swipe_deck_on_phone(page):
     tops = page.eval_on_selector_all(".ep-now .ep-col", "cs => cs.map(c => Math.round(c.getBoundingClientRect().top))")
     assert len(set(tops)) == 1
     assert page.eval_on_selector(".ep-now .ep-cgrid", "g => getComputedStyle(g).scrollSnapType").startswith("x")
+    assert page.get_attribute(".ep-now .ep-cgrid", "data-scroll-x") is not None  # why: tells ops site-check it is meant
 
 
 def test_marking_a_card_keeps_the_phone_deck_on_that_card(page):

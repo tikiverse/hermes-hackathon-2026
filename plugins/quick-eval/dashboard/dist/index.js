@@ -339,8 +339,10 @@ function answerCol(a) {
       h("span", { class: "ep-col-meta", text: answerMeta(a) })), answerBody(a))
 }
 
+/* why: on a phone the answers are a swipe deck on purpose; data-scroll-x tells `ops site-check` the sideways scroll is meant */
 function gridEl(answers) {
-  return h("div", { class: "ep-cgrid", style: `--ep-cols: ${Math.min(answers.length, 4)}` }, answers.map(answerCol))
+  const attrs = { class: "ep-cgrid", "data-scroll-x": "", style: `--ep-cols: ${Math.min(answers.length, 4)}` }
+  return h("div", attrs, answers.map(answerCol))
 }
 
 function toggleOpen(e) { e.currentTarget.classList.toggle("open") }
