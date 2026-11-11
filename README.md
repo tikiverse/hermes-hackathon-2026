@@ -1,68 +1,49 @@
-# hermes-hackathon-2026
+# Quick Eval
 
-[Hermes Agent](https://hermes-agent.nousresearch.com/docs/user-guide/features/plugins) plugins, plus a test harness that checks them before Hermes sees them.
+Quick Eval is a [Hermes Agent](https://hermes-agent.nousresearch.com/) plugin for getting a second opinion on an answer. After the agent replies, run `/quick-eval` to send the same question to other models, compare the answers side by side, and mark the ones that are good. Each comparison is saved locally, so the questions you ask become an evaluation dataset with a leaderboard of the models you trust most.
 
-## quick-eval
+![Three Claude models answer a question about Tiananmen Square in 1989, while a local Qwen model refuses](docs/img/tiananmen.png)
 
-Ask the agent something, then `/quick-eval`: other models answer the same prompt, you mark the good answers, and a leaderboard adds them up. Details and what it touches: [plugins/quick-eval/README.md](plugins/quick-eval/README.md).
+*The review page after asking four models "What happened at Tiananmen Square in 1989?". Three Claude models answer, and the local Qwen model refuses.*
 
-![Tiananmen 1989: three Claude models answer, local Qwen refuses](docs/img/tiananmen.png)
-*"What happened at Tiananmen Square in 1989?" Three Claude models answer; the local Qwen model refuses.*
+Quick Eval was created for the Hermes Agent Plugin Hackathon 2026.
 
-### Install
+## Install
 
-Have Hermes (`hermes` runs in your terminal):
-```
-hermes plugins install tikiverse/hermes-hackathon-2026/plugins/quick-eval --enable
-```
-No Hermes yet: install it, pick a model provider, then run the line above.
-```
-curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
-hermes setup
+Quick Eval requires Hermes Agent 0.19 or later.
+
+```sh
+hermes plugins install quick-eval
 ```
 
-### Try it (no account, no key, your Hermes untouched)
+To install it directly from GitHub instead:
 
-Setup once, copy and paste (skip what you have):
+```sh
+hermes plugins install tikiverse/quick-eval/plugins/quick-eval --enable
 ```
-curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --skip-setup   # Hermes
-brew install ollama && brew services start ollama                                   # or the app: https://ollama.com/download
-ollama pull qwen2.5:0.5b && ollama pull deepseek-r1:1.5b                                # ~1.5 GB
-```
-Then this line gives the plugin a Hermes home of its own and opens Hermes:
-```
-curl -fsSL https://raw.githubusercontent.com/tikiverse/hermes-hackathon-2026/quick-eval-ui/scripts/demo.sh | sh
-```
-It prints the 4 steps to try (ask, `/quick-eval`, `/quick-eval deepseek`, `/quick-eval pick A`), then opens Hermes on Enter.
-Remove the demo (the last 2 lines only if you installed them for it; `hermes uninstall` keeps `~/.hermes`):
-```
-rm -rf ~/.hermes-quick-eval-demo ~/.cache/quick-eval-pr
-ollama rm qwen2.5:0.5b deepseek-r1:1.5b
-brew services stop ollama && brew uninstall ollama
-hermes uninstall
-```
-llama-server or vLLM instead of Ollama: skip the demo, install into your Hermes (above); `/quick-eval` finds them.
 
-Models: nothing to configure. `/quick-eval` lists the models Hermes is signed in to, plus Ollama, LM Studio or vLLM if one runs on this machine.
+Restart `hermes`, ask the agent a question, and then run `/quick-eval`.
 
-Restart `hermes` after installing.
+## Documentation
 
-### Use
+The [plugin README](plugins/quick-eval/README.md) covers:
 
-| Where | How |
-|---|---|
-| Terminal (`hermes`) | `/quick-eval` lists models + commands → `/quick-eval deepseek` → `/quick-eval pick A,B` |
-| Chat apps (Desktop, phone, gateways) | same commands |
-| Review UI | `/quick-eval open` → http://127.0.0.1:8765. Also a tab in `hermes dashboard`. No Hermes: `uv run python plugins/quick-eval/standalone.py --open` |
+- [A local demo](plugins/quick-eval/README.md#demo) that needs no account or API key
+- [Commands and configuration](plugins/quick-eval/README.md#usage)
+- [The review page](plugins/quick-eval/README.md#review-page) and [eval log format](docs/eval-log.md)
+- [Data and network access](plugins/quick-eval/README.md#data-and-network-access)
+- [Development setup](plugins/quick-eval/README.md#development)
 
-## Develop
+## Development
 
-```
+```sh
 uv sync
-uv run pytest                     # -m "not hermes" skips the real-Hermes subprocess tests
-hermes plugins validate "$PWD/plugins/quick-eval"   # catalog check; needs Hermes >= 0.23.0
+uv run pytest                          # add -m "not hermes" to skip tests that start the Hermes CLI
+scripts/link-plugins.sh quick-eval     # load your working copy in Hermes
 ```
 
-- `plugins/<name>/`: one folder per plugin, picked up by the tests automatically.
-- `tests/test_contract.py`: manifest matches what `register()` adds. `tests/test_hermes_load.py`: Hermes's real loader. `tests/test_quick_eval_e2e.py`: `/quick-eval` through real Hermes against a fake model server.
-- The fake context has no `ctx.llm`, like the validator's probe, so a `register()` that touches it fails here first.
+For the full workflow, see [Development](plugins/quick-eval/README.md#development).
+
+## License
+
+Quick Eval is released under the [MIT License](LICENSE).

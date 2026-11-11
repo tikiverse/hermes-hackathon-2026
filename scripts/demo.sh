@@ -4,9 +4,9 @@
 # Usage: curl -fsSL <raw url of this file> | sh   (env: QE_BRANCH, QE_DIR, QE_REPO, QE_DEMO_HOME, QE_NO_LAUNCH)
 set -eu
 
-branch=${QE_BRANCH:-quick-eval-ui}
+branch=${QE_BRANCH:-main}
 dir=${QE_DIR:-$HOME/.cache/quick-eval-pr}
-repo=${QE_REPO:-https://github.com/tikiverse/hermes-hackathon-2026}
+repo=${QE_REPO:-https://github.com/tikiverse/quick-eval}
 home=${QE_DEMO_HOME:-$HOME/.hermes-quick-eval-demo}
 PATH="$HOME/.local/bin:$PATH"
 
