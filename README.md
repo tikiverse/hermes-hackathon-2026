@@ -28,6 +28,8 @@ hermes plugins install tikiverse/quick-eval/plugins/quick-eval --enable
 
 Restart `hermes`, ask the agent a question, and then run `/quick-eval`.
 
+In Hermes Desktop, turn the plugin's **Desktop** switch on once, so the review page shows in the app: [steps with pictures](plugins/quick-eval/README.md#hermes-desktop).
+
 ## Documentation
 
 The [plugin README](plugins/quick-eval/README.md) covers:

@@ -84,16 +84,16 @@ brew services stop ollama && brew uninstall ollama
 hermes uninstall
 ```
 
-## Recreate the GIF in the README
+## Recreate the GIFs in the README
 
-`docs/img/demo.gif` shows the plugin running in the Hermes Desktop app. To record it again:
+`docs/img/demo.gif` shows the plugin running in the Hermes Desktop app. `docs/img/desktop-install.gif` shows where to turn it on. To record them again:
 
-1. Open a NEW chat in Hermes Desktop (not one resumed from a terminal) with Quick Eval turned on in Capabilities > Plugins. Ask a question, then run `/quick-eval`, `/quick-eval sonnet qwen2.5:0.5b`, and `/quick-eval open`. On the review page, mark two answers good and press Save.
-1. Capture the Hermes window alone after each step, as `1.png` to `6.png` in one folder: `screencapture -x -o -l <window id> <n>.png`. Start with the question's answer as `1.png`, so the six files match the six steps.
-1. Build the GIF:
+1. Open a NEW chat in Hermes Desktop (not one resumed from a terminal) with Quick Eval turned on. Ask a question, then run `/quick-eval`, `/quick-eval sonnet qwen2.5:0.5b`, and `/quick-eval open`. On the review page, mark two answers good and press Save.
+1. Capture the Hermes window alone after each step: `screencapture -x -o -l <window id> <file>.png`. Name the files `demo-1.png` to `demo-6.png` (the answer to the question is step 1). For the install GIF, use `desktop-install-1.png` (Capabilities > Plugins), `desktop-install-2.png` (Filters menu open) and `desktop-install-3.png` (Filters > Installed, Quick Eval selected).
+1. Build both GIFs:
 
    ```sh
-   uv run --with pillow python -I scripts/make-desktop-demo-gif.py <folder>
+   uv run --with pillow python -I scripts/make-desktop-gifs.py <folder>
    ```
 
-The script crops each capture to the chat or the review page, so the session list and other chats never show. It rewrites the `local` model row of step 2, which prints a file path with a home folder. Look at every frame before you commit the GIF.
+The script crops each capture to the part a step explains, so the session list and other chats never show. It rewrites the `local` model row (a file path with a home folder) and the plugin's agent row (this machine's host name). Look at every frame before you commit a GIF.

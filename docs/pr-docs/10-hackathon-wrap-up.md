@@ -12,9 +12,9 @@ Reply per item, for example `1 yes, 3 no`:
 2. `/quick-eval open`: Desktop chat → Desktop **Quick Eval** page. Terminal or any other surface → browser page, even with Desktop installed. Hermes tells the command its surface (`platform`).
 3. Desktop page (PR 4) is folded in here. PR 9 closed 2026-11-11 as superseded (branch `validator-warnings` kept; reopen it if you pick clone-then-run in decision 1). Close PR 4 after merge.
 4. 2 `private core imports` warnings stay: no public API for Hermes version or signed-in providers. Both guarded by try; reviewer sees them. Hermes issue asking for the 2 seams, posted 2026-11-11: https://github.com/NousResearch/hermes-agent/issues/153833
-5. Demo GIF: 6 steps recorded in the real Hermes Desktop app (new chat, `/quick-eval`, `/quick-eval sonnet qwen2.5:0.5b`, `/quick-eval open`, mark A+B, save). Cropped to the chat and the Quick Eval page: no session list, no other chats, no file path (the `local` model row is rewritten). Replaces the screen-recording GIF (webcam, captions). Rebuild: `docs/demo.md`, last section.
+5. Demo GIFs: a 6-step demo recorded in the real Hermes Desktop app, and a 3-step GIF that shows where to turn the plugin on in Desktop. Cropped so no session list, other chats or file path show. Replaces the screen-recording GIF (webcam, captions). Rebuild: `docs/demo.md`, last section.
 6. Registry PR: fork `shaunporwal/hermes-agent`, branch `plugin-catalog/quick-eval`. `tikiverse` (repo owner, catalog rule 5) opens the PR from the compare link below. `sha` = merge commit of this PR.
-7. Desktop open needs a Hermes that reports the chat's surface to the command (upstream 0.22.3 or newer). Found 2026-11-11 on Shaun's Mac: the first try showed the browser URL because (a) the gateway had started before this change and still ran the old code, and (b) that chat was created in a terminal and resumed in Desktop, so it keeps the surface `tui`. A chat created in Desktop reports `desktop`. Second try, 2026-11-11 14:10 (new Desktop chat): the command reached Desktop (its reply said so) but no page showed. Cause: Desktop ships a plugin's Desktop page off until the user turns it on once (`runtime-loader.ts`: "A unified package's desktop half ships opt-in"); plugins installed through Desktop's own installer are turned on for the user. The plugin cannot preset it. Fix: README names the switch (Capabilities > Plugins > Quick Eval) and the reply of `/quick-eval open` says it. Rec: keep `requires_hermes: ">=0.19"` (the browser page still works on 0.19 to 0.22.2; a hard pin would drop those users from the whole plugin) and say so in the README and the catalog text. Alt: pin `>=0.22.3`. Not a setting.
+7. Minimum Hermes version. The Desktop page needs Hermes 0.22.3 or newer. Older Hermes (0.19 to 0.22.2) still works: `/quick-eval open` opens the browser page there. Rec: keep `requires_hermes: ">=0.19"`, so older users keep the plugin. Alt: `>=0.22.3` (drops those users from the whole plugin).
 
 This PR finishes the Hermes Agent Plugin Hackathon entry: it clears the validator warnings it can, makes `/quick-eval open` use Desktop when it runs in Desktop, adds the demo GIF, and prepares the catalog PR.
 
@@ -34,6 +34,14 @@ Links:
 - Open the catalog PR from here (`tikiverse`): https://github.com/NousResearch/hermes-agent/compare/main...shaunporwal:hermes-agent:plugin-catalog/quick-eval
 - Catalog PR plan: docs/pr-docs/planned-catalog-entry.md
 - Catalog PR body (draft): docs/catalog/pr-body.md
+
+## Notes: why the first Desktop tries failed (2026-11-11)
+
+| Try | Cause | Now |
+|---|---|---|
+| 1 | The Hermes gateway had started before this change and ran the old code | Gateway restarted |
+| 1 | The chat was created in a terminal (surface `tui`); a chat created in Desktop reports `desktop` | README says: use a chat created in Desktop |
+| 2 | Desktop ships a plugin's Desktop page off until the user turns it on once; the plugin cannot preset it | README shows the switch (GIF); the `/quick-eval open` reply names it |
 
 ## Facts (checked in Hermes 0.23 source)
 
@@ -66,7 +74,8 @@ Links:
 ### Tier 3 - Demo GIF
 
 - [x] 6-step GIF recorded in Hermes Desktop, in both READMEs and the catalog draft
-- [x] `scripts/make-desktop-demo-gif.py` rebuilds it from 6 window captures; `tests/test_desktop_demo_gif.py` checks the builder and the committed GIF
+- [x] `scripts/make-desktop-gifs.py` rebuilds both GIFs from window captures; `tests/test_desktop_gifs.py` checks the builder and the committed GIFs
+- [x] Plugin README, Install > Hermes Desktop: steps for the one-time Desktop switch, with `docs/img/desktop-install.gif` (Capabilities > Plugins > Filters > Installed > Desktop)
 - [x] Old `scripts/make-demo-gif.py` (screen recording) removed
 
 ### Tier 4 - Catalog PR (after merge)

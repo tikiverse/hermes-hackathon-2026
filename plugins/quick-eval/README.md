@@ -41,6 +41,18 @@ hermes plugins install tikiverse/quick-eval/plugins/quick-eval --enable
 
 Restart `hermes` after you install the plugin.
 
+### Hermes Desktop
+
+Hermes Desktop shows the **Quick Eval** page only after you turn on the plugin's **Desktop** switch once. A terminal install (`hermes plugins install`) leaves it off. If you install the plugin with Desktop's own **Install** button, the switch is already on.
+
+![Hermes Desktop: Capabilities, Plugins, Filters, Installed, then the Desktop switch of Quick Eval](https://raw.githubusercontent.com/tikiverse/quick-eval/main/docs/img/desktop-install.gif)
+
+1. Open **Capabilities** in the sidebar, then open the **Plugins** tab.
+1. Select **Filters**, then **Installed**. Quick Eval is in the list.
+1. Select **Quick Eval**, then turn on the **Desktop** switch. A **Quick Eval** row appears in the sidebar after a few seconds.
+
+Then start a new chat in Desktop and run `/quick-eval open`. The page opens in the app, and the sidebar row opens it too.
+
 ## Demo
 
 A local demo runs two small Ollama models, so it needs no account or API key. The steps are in [docs/demo.md](https://github.com/tikiverse/quick-eval/blob/main/docs/demo.md).
@@ -96,7 +108,7 @@ plugins:
 
 ### Review page
 
-Run `/quick-eval open`, or open the **Quick Eval** tab in `hermes dashboard`. In Hermes Desktop, the command shows the **Quick Eval** page from the sidebar. That needs Hermes 0.22.3 or newer behind Desktop, a chat created in Desktop, and the one-time switch **Capabilities > Plugins > Quick Eval** (Desktop ships a plugin's Desktop page off; installing through Desktop's own plugin installer turns it on for you); on an older Hermes, or in a chat started in a terminal, the command opens the browser page instead. In a terminal, it always opens the browser page, even when Hermes Desktop is installed. The page reads your Hermes chat history and has two tabs:
+Run `/quick-eval open`, or open the **Quick Eval** tab in `hermes dashboard`. In Hermes Desktop, the command shows the **Quick Eval** page from the sidebar, after you [turn the plugin on in Desktop](#hermes-desktop). That needs Hermes 0.22.3 or newer behind Desktop and a chat created in Desktop; on an older Hermes, or in a chat started in a terminal, the command opens the browser page instead. In a terminal, it always opens the browser page, even when Hermes Desktop is installed. The page reads your Hermes chat history and has two tabs:
 
 - **Review** lists your chats, with the current one pinned. Each chat turn shows the agent's reply, or one column per model after a `/quick-eval` run. Select every good answer, then optionally add a note and the answer you expected.
 - **Leaderboard** shows, for each model, how often its answer was marked good and how many times it was the only good answer.
