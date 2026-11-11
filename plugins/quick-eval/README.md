@@ -2,6 +2,10 @@
 
 Quick Eval is a [Hermes Agent](https://hermes-agent.nousresearch.com/) plugin for getting a second opinion on an answer. After the agent replies, run `/quick-eval` to send the same question to other models, compare the answers side by side, and mark the ones that are good. Every comparison is saved to a local JSONL file, so over time you build an evaluation dataset from the questions you ask, and a leaderboard shows which models you trust most.
 
+![Six steps in Hermes Desktop: Hermes answers, /quick-eval lists models, two more models answer, /quick-eval open shows the answers side by side, you mark the good ones, and save](https://raw.githubusercontent.com/tikiverse/quick-eval/main/docs/img/demo.gif)
+
+*The six steps of a Quick Eval run, recorded in the Hermes Desktop app.*
+
 ![Three Claude models answer a question about Tiananmen Square in 1989, while a local Qwen model refuses](https://raw.githubusercontent.com/tikiverse/quick-eval/main/docs/img/tiananmen.png)
 
 *The review page after asking four models "What happened at Tiananmen Square in 1989?". Three Claude models answer, and the local Qwen model refuses.*
@@ -37,91 +41,21 @@ hermes plugins install tikiverse/quick-eval/plugins/quick-eval --enable
 
 Restart `hermes` after you install the plugin.
 
+### Hermes Desktop
+
+Hermes Desktop shows the **Quick Eval** page only after you turn on the plugin's **Desktop** switch once. A terminal install (`hermes plugins install`) leaves it off. If you install the plugin with Desktop's own **Install** button, the switch is already on.
+
+![Hermes Desktop: Capabilities, Plugins, Filters, Installed, then the Desktop switch of Quick Eval](https://raw.githubusercontent.com/tikiverse/quick-eval/main/docs/img/desktop-install.gif)
+
+1. Open **Capabilities** in the sidebar, then open the **Plugins** tab.
+1. Select **Filters**, then **Installed**. Quick Eval is in the list.
+1. Select **Quick Eval**, then turn on the **Desktop** switch. A **Quick Eval** row appears in the sidebar after a few seconds.
+
+Then start a new chat in Desktop and run `/quick-eval open`. The page opens in the app, and the sidebar row opens it too.
+
 ## Demo
 
-The demo runs entirely on your machine with two small Ollama models, so you don't need an account or an API key. It uses a separate Hermes home directory (`~/.hermes-quick-eval-demo`), so your own Hermes configuration and history stay untouched.
-
-1. Install Hermes, Ollama, and the two demo models. Skip any you already have.
-
-   ```sh
-   curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --skip-setup
-   brew install ollama && brew services start ollama
-   ollama pull qwen2.5:0.5b && ollama pull deepseek-r1:1.5b
-   ```
-
-   On Linux or Windows, install Ollama from [ollama.com/download](https://ollama.com/download). The two models are about 1.5 GB in total.
-
-1. Run the demo script. It clones this repository to `~/.cache/quick-eval-pr`, creates the demo Hermes home with the plugin enabled, prints the steps below, and opens Hermes when you press Enter.
-
-   ```sh
-   curl -fsSL https://raw.githubusercontent.com/tikiverse/quick-eval/main/scripts/demo.sh | sh
-   ```
-
-1. In Hermes, ask a question. The chat model is Qwen2.5 0.5B.
-
-   ```
-   What happened at Tiananmen Square in 1989? One sentence.
-   ```
-
-1. List the models you can compare and the available commands:
-
-   ```
-   /quick-eval
-   ```
-
-   The output looks similar to this:
-
-   ```
-   quick-eval: ask other models your last question, then mark the good answers.
-   Last question: What happened at Tiananmen Square in 1989? One sentence.
-
-   Models you can name:
-     deepseek                 deepseek-r1:1.5b · ollama
-
-   Commands:
-     /quick-eval deepseek           ask them (names from the list above)
-     /quick-eval pick A,B [note]    mark the good answers (or: none)
-     /quick-eval open               review in the browser
-   ```
-
-1. Ask DeepSeek-R1 the same question:
-
-   ```
-   /quick-eval deepseek
-   ```
-
-   Answer A is the reply you already saw. Answer B is DeepSeek-R1's, which typically refuses:
-
-   ```
-   ── A · qwen2.5:0.5b · original ──
-   The 1989 Tiananmen Square protests ...
-
-   ── B · deepseek-r1:1.5b · 935 ms ──
-   I am sorry, I cannot answer that question.
-   ```
-
-1. Mark the good answer, and optionally add a note:
-
-   ```
-   /quick-eval pick A answered the question
-   ```
-
-1. Open the review page to see the comparison and the leaderboard:
-
-   ```
-   /quick-eval open
-   ```
-
-To return to the demo later, run `HERMES_HOME=~/.hermes-quick-eval-demo hermes`.
-
-To remove the demo, delete its files. Remove the Ollama models, Ollama, and Hermes only if you installed them for the demo. `hermes uninstall` keeps `~/.hermes`.
-
-```sh
-rm -rf ~/.hermes-quick-eval-demo ~/.cache/quick-eval-pr
-ollama rm qwen2.5:0.5b deepseek-r1:1.5b
-brew services stop ollama && brew uninstall ollama
-hermes uninstall
-```
+A local demo runs two small Ollama models, so it needs no account or API key. The steps are in [docs/demo.md](https://github.com/tikiverse/quick-eval/blob/main/docs/demo.md).
 
 ## Usage
 
@@ -132,7 +66,7 @@ hermes uninstall
 | `/quick-eval` | Shows your last question, the models you can name, and the available commands. |
 | `/quick-eval <model> [<model> ...]` | Sends your last question to each named model in parallel and prints the answers. |
 | `/quick-eval pick A,B [note]` | Marks the good answers of the last run. Several answers can be good. Use `none` if no answer is good. |
-| `/quick-eval open` | Opens the review page at `http://127.0.0.1:8765`. |
+| `/quick-eval open` | Opens the review page: the **Quick Eval** page in Hermes Desktop when you run it in a Desktop chat, otherwise a browser page at `http://127.0.0.1:8765`. |
 | `/quick-eval allow` | Grants the one-time permission to send your questions to other models. Quick Eval asks for this on first use. |
 
 A model name can be any name that `/quick-eval` lists, a provider model ID such as `anthropic/claude-sonnet-5.5`, or `model@provider`. A name that matches none of these is treated as a typo, and Quick Eval calls no model.
@@ -174,7 +108,7 @@ plugins:
 
 ### Review page
 
-Run `/quick-eval open`, or open the **Quick Eval** tab in `hermes dashboard`. The page reads your Hermes chat history and has two tabs:
+Run `/quick-eval open`, or open the **Quick Eval** tab in `hermes dashboard`. In Hermes Desktop, the command shows the **Quick Eval** page from the sidebar, after you [turn the plugin on in Desktop](#hermes-desktop). That needs Hermes 0.22.3 or newer behind Desktop and a chat created in Desktop; on an older Hermes, or in a chat started in a terminal, the command opens the browser page instead. In a terminal, it always opens the browser page, even when Hermes Desktop is installed. The page reads your Hermes chat history and has two tabs:
 
 - **Review** lists your chats, with the current one pinned. Each chat turn shows the agent's reply, or one column per model after a `/quick-eval` run. Select every good answer, then optionally add a note and the answer you expected.
 - **Leaderboard** shows, for each model, how often its answer was marked good and how many times it was the only good answer.
@@ -199,7 +133,7 @@ Quick Eval appends one `run` line per `/quick-eval` and one `judgment` line per 
 - **Local probes.** `/quick-eval` checks `localhost` ports 11434, 1234, 8000, and 8080 for local model servers.
 - **Files written.** `~/.hermes/evals/evals.jsonl` (append-only), and the plugin's own section of `config.yaml` for the `/quick-eval allow` permission and any local server you name.
 - **Files read.** `~/.hermes/state.db`, read-only, for the review page.
-- **Local server.** `/quick-eval open` serves the review page on `127.0.0.1:8765` until Hermes exits.
+- **Local server.** `/quick-eval open` in a terminal serves the review page on `127.0.0.1:8765` until Hermes exits. In Hermes Desktop it uses the plugin's Desktop page and starts no server.
 
 Quick Eval runs no shell commands, stores no credentials, sends no telemetry, and doesn't update itself.
 

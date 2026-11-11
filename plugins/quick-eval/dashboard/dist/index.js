@@ -124,7 +124,13 @@ function renderHead() {
   const meta = `${pick(EP.stats.judged, 0)}/${pick(EP.stats.runs, 0)} judged`
   fill(EP.els.head, h("span", { class: "ep-brand", text: "Quick Eval" }), grow(), h("span", { class: "ep-meta", text: meta }),
     h("div", { class: "ep-seg ep-tabs" }, Object.keys(TABS).map(tabButton)),
-    h("a", { class: "ep-btn ep-wide", href: EP.api + "/export", download: "evals.jsonl", text: "Export JSONL" }), railButton())
+    exportLink(), railButton())
+}
+
+/* why: a sandboxed frame (Hermes Desktop) cannot download; the log stays a plain file on disk */
+function exportLink() {
+  if (EP.noExport) return null
+  return h("a", { class: "ep-btn ep-wide", href: EP.api + "/export", download: "evals.jsonl", text: "Export JSONL" })
 }
 
 /* why: on a phone the rail is a full-screen picker opened from this button; on desktop the button is hidden */
@@ -333,8 +339,10 @@ function answerCol(a) {
       h("span", { class: "ep-col-meta", text: answerMeta(a) })), answerBody(a))
 }
 
+/* why: on a phone the answers are a swipe deck on purpose; data-scroll-x tells `ops site-check` the sideways scroll is meant */
 function gridEl(answers) {
-  return h("div", { class: "ep-cgrid", style: `--ep-cols: ${Math.min(answers.length, 4)}` }, answers.map(answerCol))
+  const attrs = { class: "ep-cgrid", "data-scroll-x": "", style: `--ep-cols: ${Math.min(answers.length, 4)}` }
+  return h("div", attrs, answers.map(answerCol))
 }
 
 function toggleOpen(e) { e.currentTarget.classList.toggle("open") }
@@ -549,7 +557,8 @@ async function boot() {
 
 function mount(root, opts) {
   clearTimeout(EP.pollTimer)
-  Object.assign(EP, freshState(), { root, api: opts.apiBase.replace(/\/$/, ""), fetchJSON: opts.fetchJSON || null })
+  Object.assign(EP, freshState(), { root, api: opts.apiBase.replace(/\/$/, ""), fetchJSON: opts.fetchJSON || null,
+    noExport: !!opts.noExport })
   root.classList.add("quickeval")
   EP.els = { head: h("header", { class: "ep-head" }), body: h("div", { class: "ep-body" }), toast: h("div", { class: "ep-toast" }) }
   fill(root, EP.els.head, EP.els.body, EP.els.toast)
