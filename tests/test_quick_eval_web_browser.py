@@ -63,7 +63,7 @@ def page(tmp_path, monkeypatch):
     with sync_api.sync_playwright() as pw:
         browser = pw.chromium.launch()
         tab = browser.new_page()
-        tab.goto(f"http://127.0.0.1:{server.server_address[1]}/")
+        tab.goto(standalone.page_url(server))
         tab.wait_for_selector(".ep-now")
         tab.evals_path = tmp_path / "evals" / "evals.jsonl"
         yield tab
@@ -203,7 +203,8 @@ def test_marking_a_card_keeps_the_phone_deck_on_that_card(page):
 
 
 DESKTOP_PARENT = """async () => {
-  const html = (await (await fetch('/api/frame')).json()).html
+  const api = '/api/' + new URLSearchParams(location.search).get('token')
+  const html = (await (await fetch(api + '/frame')).json()).html
   const frame = document.createElement('iframe')
   frame.setAttribute('sandbox', 'allow-scripts')
   frame.style.cssText = 'width:100%;height:100vh;border:0'
@@ -213,7 +214,7 @@ DESKTOP_PARENT = """async () => {
     if (!m || m.type !== 'quickeval-rpc' || e.source !== frame.contentWindow) return
     const init = m.method === 'GET' ? {} : {method: m.method, headers: {'Content-Type': 'application/json'},
                                              body: JSON.stringify(m.body)}
-    const r = await fetch('/api' + m.path, init)
+    const r = await fetch(api + m.path, init)
     e.source.postMessage({type: 'quickeval-rpc-reply', id: m.id, ok: r.ok, data: await r.json()}, '*')
   })
   document.body.replaceChildren(frame)

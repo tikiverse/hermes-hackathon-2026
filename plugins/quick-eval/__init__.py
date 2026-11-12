@@ -30,7 +30,7 @@ log = logging.getLogger(__name__)
 DESKTOP_OPENED = ("quick-eval: opened the Quick Eval page in Hermes Desktop (sidebar: Quick Eval). Nothing opened? "
                   "Turn Quick Eval on once in Desktop: Capabilities > Plugins")
 PORT = 8765
-UI_URL = f"http://127.0.0.1:{PORT}/"
+SERVERS = []  # why: one review server per Hermes process; its token lives only in this process
 NO_TURN = "Nothing to evaluate yet. Ask the agent something first, then run /quick-eval."
 NOT_ALLOWED = "First run /quick-eval allow: it lets quick-eval send your last question to other models."
 NOT_GRANTED = ("quick-eval needs your permission to send your last question to other models. In a terminal, run "
@@ -44,12 +44,19 @@ COMMANDS = [
 ]
 
 
-def open_ui():
-    if not standalone.is_running(PORT):
-        server = standalone.serve(PORT)
+def review_server():
+    """why: another Hermes may hold PORT with its own token; then take a free port instead of sharing it."""
+    if not SERVERS:
+        server = standalone.serve(0 if standalone.is_running(PORT) else PORT)
         threading.Thread(target=server.serve_forever, daemon=True).start()
-    webbrowser.open(UI_URL)
-    return f"quick-eval UI: {UI_URL}"
+        SERVERS.append(server)
+    return SERVERS[0]
+
+
+def open_ui():
+    url = standalone.page_url(review_server())
+    webbrowser.open(url)
+    return f"quick-eval UI: {url}"
 
 
 def open_in_desktop():
