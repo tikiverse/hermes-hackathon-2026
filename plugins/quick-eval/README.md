@@ -67,7 +67,7 @@ A local demo runs two small Ollama models, so it needs no account or API key. Th
 | `/quick-eval <model> [<model> ...]` | Sends your last question to each named model in parallel and prints the answers. |
 | `/quick-eval pick A,B [note]` | Marks the good answers of the last run. Several answers can be good. Use `none` if no answer is good. |
 | `/quick-eval open` | Opens the review page: the **Quick Eval** page in Hermes Desktop when you run it in a Desktop chat, otherwise a browser page at `http://127.0.0.1:8765`. |
-| `/quick-eval allow` | Grants the one-time permission to send your questions to other models. Quick Eval asks for this on first use. |
+| `/quick-eval allow` | Grants the one-time permission to send your questions to other models, on Hermes without a plugin consent screen. Newer Hermes asks for this permission itself when you run `hermes plugins enable quick-eval`. |
 
 A model name can be any name that `/quick-eval` lists, a provider model ID such as `anthropic/claude-sonnet-5.5`, or `model@provider`. A name that matches none of these is treated as a typo, and Quick Eval calls no model.
 
@@ -101,7 +101,7 @@ plugins:
 
 | Key | Description |
 |---|---|
-| `llm` | The permission that `/quick-eval allow` writes. |
+| `llm` | The permission to call other models. Hermes's consent screen writes it, or `/quick-eval allow` on older Hermes. |
 | `default` | Models that `/quick-eval` uses in its example command. |
 | `params` | Settings that every compared model receives. `timeout` is in seconds and applies to each model separately. |
 | `models` | Short names (aliases) for models you compare often. |
@@ -131,7 +131,7 @@ Quick Eval appends one `run` line per `/quick-eval` and one `judgment` line per 
 
 - **Model calls.** `/quick-eval` sends only your last question to the models you name. Calls go through Hermes's plugin LLM API (`ctx.llm`) and your configured providers.
 - **Local probes.** `/quick-eval` checks `localhost` ports 11434, 1234, 8000, and 8080 for local model servers.
-- **Files written.** `~/.hermes/evals/evals.jsonl` (append-only), and the plugin's own section of `config.yaml` for the `/quick-eval allow` permission and any local server you name.
+- **Files written.** `~/.hermes/evals/evals.jsonl` (append-only), and the plugin's own section of `config.yaml` for the permission to call other models and any local server you name.
 - **Files read.** `~/.hermes/state.db`, read-only, for the review page.
 - **Local server.** `/quick-eval open` in a terminal serves the review page on `127.0.0.1:8765` until Hermes exits. In Hermes Desktop it uses the plugin's Desktop page and starts no server.
 

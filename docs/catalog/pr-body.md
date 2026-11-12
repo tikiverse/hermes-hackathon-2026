@@ -26,9 +26,9 @@ Quick Eval gets a second opinion on an answer. After the agent replies, `/quick-
 
 ## Disclosure (rule 13)
 
-- **Model calls:** only your last question, to the models you name, through `ctx.llm`. It needs `/quick-eval allow` once.
+- **Model calls:** only your last question, to the models you name, through `ctx.llm`. It declares `llm.model_override` and `llm.provider_override`, so Hermes asks for them on its consent screen; older Hermes uses `/quick-eval allow` once.
 - **Local probes:** `localhost` ports 11434, 1234, 8000 and 8080, to find local model servers.
-- **Files written:** `~/.hermes/evals/evals.jsonl` (append-only); the plugin's own section of `config.yaml` after `/quick-eval allow` or when you name a local server.
+- **Files written:** `~/.hermes/evals/evals.jsonl` (append-only); the plugin's own section of `config.yaml` after the permission is granted or when you name a local server.
 - **Files read:** `~/.hermes/state.db`, read-only, for the review page.
 - **Local server:** `/quick-eval open` from a terminal serves the page on `127.0.0.1:8765` until Hermes exits. In Hermes Desktop it starts no server.
 - No shell commands, credentials, telemetry or self-updates. The README's demo (`docs/demo.md`, outside the plugin folder) has a `curl | sh` line that users run themselves; the plugin never runs it.

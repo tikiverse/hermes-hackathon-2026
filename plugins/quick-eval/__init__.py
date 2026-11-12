@@ -4,7 +4,8 @@
 /quick-eval <model> [model ...]    ask them; answers print side by side
 /quick-eval pick A,B [note]        mark the good answers of the last run (or: none)
 /quick-eval open                   review page: Hermes Desktop's Quick Eval page when run there, else the browser
-/quick-eval allow                  one-time permission to send your question to other models
+/quick-eval allow                  one-time permission to send your question to other models (Hermes before the
+                                   consent screen; newer Hermes asks at `hermes plugins enable quick-eval`)
 
 why text only: Hermes 0.19 runs plugin commands in the terminal, newer ones in the gateway; a typed command works
 on both and in chat apps, where a terminal picker does not.
@@ -32,6 +33,8 @@ PORT = 8765
 UI_URL = f"http://127.0.0.1:{PORT}/"
 NO_TURN = "Nothing to evaluate yet. Ask the agent something first, then run /quick-eval."
 NOT_ALLOWED = "First run /quick-eval allow: it lets quick-eval send your last question to other models."
+NOT_GRANTED = ("quick-eval needs your permission to send your last question to other models. In a terminal, run "
+               "`hermes plugins enable quick-eval` and grant it.")
 MAX_LISTED = 8
 MANIFEST = Path(__file__).resolve().parent / "plugin.yaml"
 COMMANDS = [
@@ -142,6 +145,8 @@ class QuickEval:
         return OPENERS.get(platform, open_ui)()
 
     def cmd_allow(self, _raw: str = "", **_surface) -> str:
+        if has_consent_screen():
+            return NOT_GRANTED
         self.config.save(settings.trust_patch())
         return f"Allowed. Saved in {file_link(self.config.path())}. Now: /quick-eval <model>"
 
@@ -159,7 +164,7 @@ class QuickEval:
         lines = ["quick-eval: ask other models your last question, then mark the good answers.", asked, ""]
         lines += ["Models you can name:", *(model_lines(rows) or ["  none found: name one as model@provider"]), ""]
         lines += ["Commands:", *command_lines(example)]
-        return "\n".join(lines + ([] if settings.is_trusted(config) else ["", NOT_ALLOWED]))
+        return "\n".join(lines + ([] if settings.is_trusted(config) else ["", not_allowed()]))
 
     def model_rows(self, config):
         """why: aliases first (the user named them), then local servers, then models Hermes is signed in to; the
@@ -182,7 +187,7 @@ class QuickEval:
             return NO_TURN
         config = self.config.load()
         if not settings.is_trusted(config):
-            return NOT_ALLOWED
+            return not_allowed()
         unknown = self.unknown_names(names, config)
         if unknown:
             return unknown
@@ -243,6 +248,20 @@ class LazyLLM:
 
     def complete(self, *args, **kwargs):
         return self.ctx.llm.complete(*args, **kwargs)
+
+
+def has_consent_screen():
+    """why: newer Hermes grants plugin.yaml's `capabilities` on its own consent screen; the plugin must not
+    write the grant itself there. Older Hermes has no such screen, so /quick-eval allow writes it."""
+    try:
+        import hermes_cli.plugin_capabilities  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+def not_allowed():
+    return NOT_GRANTED if has_consent_screen() else NOT_ALLOWED
 
 
 def hermes_version():
