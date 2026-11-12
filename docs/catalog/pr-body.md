@@ -26,9 +26,9 @@ Quick Eval gets a second opinion on an answer. After the agent replies, `/quick-
 
 ## Disclosure (rule 13)
 
-- **Model calls:** only your last question, to the models you name, through `ctx.llm`. It needs `/quick-eval allow` once.
+- **Model calls:** only your last question, to the models you name, through `ctx.llm`. It declares `llm.model_override` and `llm.provider_override`, so Hermes asks for them on its consent screen; older Hermes uses `/quick-eval allow` once.
 - **Local probes:** `localhost` ports 11434, 1234, 8000 and 8080, to find local model servers.
-- **Files written:** `~/.hermes/evals/evals.jsonl` (append-only); the plugin's own section of `config.yaml` after `/quick-eval allow` or when you name a local server.
+- **Files written:** `~/.hermes/evals/evals.jsonl` (append-only); the plugin's own section of `config.yaml` after the permission is granted or when you name a local server.
 - **Files read:** `~/.hermes/state.db`, read-only, for the review page.
 - **Local server:** `/quick-eval open` from a terminal serves the page on `127.0.0.1:8765` (a free port if another Hermes holds it) until Hermes exits. The page is locked: a new random token each launch, carried only by the URL it opens and required on every API call; requests must name `127.0.0.1` or `localhost` as Host; POSTs must be JSON. In Hermes Desktop it starts no server.
 - No shell commands, credentials, telemetry or self-updates. The README's demo (`docs/demo.md`, outside the plugin folder) has a `curl | sh` line that users run themselves; the plugin never runs it.
@@ -37,8 +37,8 @@ Quick Eval gets a second opinion on an answer. After the agent replies, `/quick-
 
 `hermes plugins validate <plugin dir>` at the pinned SHA passes (including `desktop surface` and `no core override`). One warning remains:
 
-- `private core imports`: `hermes_cli.__version__` (`__init__.py`) and `hermes_cli.model_switch.list_authenticated_providers` (`discover.py`). Hermes 0.19 ignores `requires_hermes`, so the version read lets an older Hermes show "update Hermes" instead of a half-working command; there is no public call for it. The provider list has no public equivalent either. Both are wrapped so a change in Hermes empties that part of the list instead of breaking the command. I opened https://github.com/NousResearch/hermes-agent/issues/153833 asking for both; happy to move to a public seam when one exists.
+- `private core imports`: `hermes_cli.__version__` and `hermes_cli.plugin_capabilities` (`__init__.py`), and `hermes_cli.model_switch.list_authenticated_providers` (`discover.py`). `plugin_capabilities` is only imported to detect the consent screen (no attribute used); without it the plugin falls back to `/quick-eval allow`. Hermes 0.19 ignores `requires_hermes`, so the version read lets an older Hermes show "update Hermes" instead of a half-working command; there is no public call for it. The provider list has no public equivalent either. Both are wrapped so a change in Hermes empties that part of the list instead of breaking the command. I opened https://github.com/NousResearch/hermes-agent/issues/153833 asking for both; happy to move to a public seam when one exists.
 
 `requires_hermes: ">=0.19"` is declared in both `plugin.yaml` and the entry; the tests run on 0.19 and 0.23.
 
-Tests: 266 pass in the plugin repo (`uv run pytest -m "not hermes"`), plus 4 that start the real Hermes CLI.
+Tests: 268 pass in the plugin repo (`uv run pytest -m "not hermes"`), plus 4 that start the real Hermes CLI.

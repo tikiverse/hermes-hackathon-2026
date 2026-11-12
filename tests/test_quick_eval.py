@@ -165,6 +165,22 @@ def test_allow_saves_permission_then_runs(make):
     assert len(plugin.llm.calls) == 1
 
 
+def test_consent_screen_hermes_grants_permission_itself(make, monkeypatch):
+    """why: Hermes with a consent screen grants plugin.yaml's capabilities; /quick-eval allow must not write them."""
+    monkeypatch.setitem(sys.modules, "hermes_cli.plugin_capabilities", type(sys)("plugin_capabilities"))
+    plugin = make(config={})
+    assert "hermes plugins enable quick-eval" in plugin.cmd_eval("allow")
+    assert plugin.config.data == {}
+    assert "hermes plugins enable quick-eval" in plugin.cmd_eval("claude")
+    assert "hermes plugins enable quick-eval" in plugin.cmd_eval("")
+    assert plugin.llm.calls == []
+
+
+def test_manifest_declares_the_llm_capabilities(module):
+    manifest = module.MANIFEST.read_text()
+    assert "  - llm.model_override\n" in manifest and "  - llm.provider_override\n" in manifest
+
+
 def listed_names(help_text):
     return [line.split()[0] for line in help_text.split("Models you can name:\n")[1].split("\n\n")[0].splitlines()]
 
