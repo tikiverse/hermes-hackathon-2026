@@ -37,8 +37,8 @@ Quick Eval gets a second opinion on an answer. After the agent replies, `/quick-
 
 `hermes plugins validate <plugin dir>` at the pinned SHA passes (including `desktop surface` and `no core override`). One warning remains:
 
-- `private core imports`: `hermes_cli.__version__` (`__init__.py`) and `hermes_cli.model_switch.list_authenticated_providers` (`discover.py`). Hermes 0.19 ignores `requires_hermes`, so the version read lets an older Hermes show "update Hermes" instead of a half-working command; there is no public call for it. The provider list has no public equivalent either. Both are wrapped so a change in Hermes empties that part of the list instead of breaking the command. I opened https://github.com/NousResearch/hermes-agent/issues/153833 asking for both; happy to move to a public seam when one exists.
+- `private core imports`: `hermes_cli.__version__` and `hermes_cli.plugin_capabilities` (`__init__.py`), and `hermes_cli.model_switch.list_authenticated_providers` (`discover.py`). `plugin_capabilities` is only imported to detect the consent screen (no attribute used); without it the plugin falls back to `/quick-eval allow`. Hermes 0.19 ignores `requires_hermes`, so the version read lets an older Hermes show "update Hermes" instead of a half-working command; there is no public call for it. The provider list has no public equivalent either. Both are wrapped so a change in Hermes empties that part of the list instead of breaking the command. I opened https://github.com/NousResearch/hermes-agent/issues/153833 asking for both; happy to move to a public seam when one exists.
 
 `requires_hermes: ">=0.19"` is declared in both `plugin.yaml` and the entry; the tests run on 0.19 and 0.23.
 
-Tests: 266 pass in the plugin repo (`uv run pytest -m "not hermes"`), plus 4 that start the real Hermes CLI.
+Tests: 268 pass in the plugin repo (`uv run pytest -m "not hermes"`), plus 4 that start the real Hermes CLI.
