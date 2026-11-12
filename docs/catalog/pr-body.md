@@ -3,7 +3,7 @@ Hermes Agent Plugin Hackathon entry.
 
 Plugin: https://github.com/tikiverse/quick-eval (subdir `plugins/quick-eval`)
 Pinned SHA: <sha>
-Demo video: https://github.com/tikiverse/quick-eval/issues/3
+Demo video: https://x.com/ShaunPorwal/status/2120623874555396133
 
 ![The six steps of a Quick Eval run, in Hermes Desktop](https://raw.githubusercontent.com/tikiverse/quick-eval/<sha>/docs/img/demo.gif)
 
@@ -30,7 +30,7 @@ Quick Eval gets a second opinion on an answer. After the agent replies, `/quick-
 - **Local probes:** `localhost` ports 11434, 1234, 8000 and 8080, to find local model servers.
 - **Files written:** `~/.hermes/evals/evals.jsonl` (append-only); the plugin's own section of `config.yaml` after `/quick-eval allow` or when you name a local server.
 - **Files read:** `~/.hermes/state.db`, read-only, for the review page.
-- **Local server:** `/quick-eval open` from a terminal serves the page on `127.0.0.1:8765` until Hermes exits. In Hermes Desktop it starts no server.
+- **Local server:** `/quick-eval open` from a terminal serves the page on `127.0.0.1:8765` (a free port if another Hermes holds it) until Hermes exits. The page is locked: a new random token each launch, carried only by the URL it opens and required on every API call; requests must name `127.0.0.1` or `localhost` as Host; POSTs must be JSON. In Hermes Desktop it starts no server.
 - No shell commands, credentials, telemetry or self-updates. The README's demo (`docs/demo.md`, outside the plugin folder) has a `curl | sh` line that users run themselves; the plugin never runs it.
 
 ## Validation
@@ -41,4 +41,4 @@ Quick Eval gets a second opinion on an answer. After the agent replies, `/quick-
 
 `requires_hermes: ">=0.19"` is declared in both `plugin.yaml` and the entry; the tests run on 0.19 and 0.23.
 
-Tests: 254 pass in the plugin repo (`uv run pytest -m "not hermes"`), plus 4 that start the real Hermes CLI.
+Tests: 266 pass in the plugin repo (`uv run pytest -m "not hermes"`), plus 4 that start the real Hermes CLI.

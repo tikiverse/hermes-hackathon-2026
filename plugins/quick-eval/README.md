@@ -66,7 +66,7 @@ A local demo runs two small Ollama models, so it needs no account or API key. Th
 | `/quick-eval` | Shows your last question, the models you can name, and the available commands. |
 | `/quick-eval <model> [<model> ...]` | Sends your last question to each named model in parallel and prints the answers. |
 | `/quick-eval pick A,B [note]` | Marks the good answers of the last run. Several answers can be good. Use `none` if no answer is good. |
-| `/quick-eval open` | Opens the review page: the **Quick Eval** page in Hermes Desktop when you run it in a Desktop chat, otherwise a browser page at `http://127.0.0.1:8765`. |
+| `/quick-eval open` | Opens the review page: the **Quick Eval** page in Hermes Desktop when you run it in a Desktop chat, otherwise a browser page at `http://127.0.0.1:8765/?token=…`. |
 | `/quick-eval allow` | Grants the one-time permission to send your questions to other models. Quick Eval asks for this on first use. |
 
 A model name can be any name that `/quick-eval` lists, a provider model ID such as `anthropic/claude-sonnet-5.5`, or `model@provider`. A name that matches none of these is treated as a typo, and Quick Eval calls no model.
@@ -133,7 +133,7 @@ Quick Eval appends one `run` line per `/quick-eval` and one `judgment` line per 
 - **Local probes.** `/quick-eval` checks `localhost` ports 11434, 1234, 8000, and 8080 for local model servers.
 - **Files written.** `~/.hermes/evals/evals.jsonl` (append-only), and the plugin's own section of `config.yaml` for the `/quick-eval allow` permission and any local server you name.
 - **Files read.** `~/.hermes/state.db`, read-only, for the review page.
-- **Local server.** `/quick-eval open` in a terminal serves the review page on `127.0.0.1:8765` until Hermes exits. In Hermes Desktop it uses the plugin's Desktop page and starts no server.
+- **Local server.** `/quick-eval open` in a terminal serves the review page on `127.0.0.1:8765` (a free port if another Hermes holds it) until Hermes exits. The page is locked: a new random token each launch, carried only by the URL it opens and required on every API call; requests must name `127.0.0.1` or `localhost` as Host; POSTs must be JSON. In Hermes Desktop it uses the plugin's Desktop page and starts no server.
 
 Quick Eval runs no shell commands, stores no credentials, sends no telemetry, and doesn't update itself.
 
